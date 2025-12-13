@@ -422,12 +422,15 @@ def insert_pois_batch(conn: sqlite3.Connection, pois: List[Dict]) -> int:
         for poi in pois
     ]
     
+    # 在插入前获取当前最大 ID（executemany 后 lastrowid 可能为 None）
+    cursor.execute("SELECT COALESCE(MAX(id), 0) FROM poi")
+    max_id_before = cursor.fetchone()[0]
+    
     cursor.executemany(insert_sql, data)
     
     # 同时插入 R-Tree 索引
-    # 获取刚插入记录的 id 范围
-    last_id = cursor.lastrowid
-    first_id = last_id - len(pois) + 1
+    # 计算新插入记录的 ID 范围
+    first_id = max_id_before + 1
     
     rtree_sql = '''
         INSERT INTO poi_rtree (id, min_lat, max_lat, min_lon, max_lon)
@@ -571,6 +574,10 @@ def insert_pois(conn: sqlite3.Connection, pois: List[Dict]) -> int:
     for i in range(0, total, batch_size):
         batch = pois[i:i+batch_size]
         
+        # 在插入前获取当前最大 ID（executemany 后 lastrowid 可能为 None）
+        cursor.execute("SELECT COALESCE(MAX(id), 0) FROM poi")
+        max_id_before = cursor.fetchone()[0]
+        
         data = [
             (
                 poi['osm_id'],
@@ -592,9 +599,8 @@ def insert_pois(conn: sqlite3.Connection, pois: List[Dict]) -> int:
         
         cursor.executemany(insert_sql, data)
         
-        # 获取刚插入的记录 ID 范围用于 R-Tree
-        last_id = cursor.lastrowid
-        first_id = last_id - len(batch) + 1
+        # 计算新插入记录的 ID 范围用于 R-Tree
+        first_id = max_id_before + 1
         
         # 插入 R-Tree 索引
         rtree_sql = '''

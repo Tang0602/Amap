@@ -13,3 +13,21 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Scripts - 下载的大文件
+scripts/downloads/
+
+# Scripts - 临时文件
+scripts/temp/
+
+# Scripts - 生成的地图数据
+scripts/map_data/*.map
+scripts/map_data/*.db
+scripts/map_data/*-gh/
+# 保留 theme.xml 等配置文件

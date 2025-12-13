@@ -8,6 +8,7 @@
 #
 
 set -e
+set -o pipefail  # 确保管道中的错误能被捕获
 
 # 加载共享配置
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -81,67 +82,70 @@ generate_graphhopper_data() {
     
     local gh_jar="$DOWNLOAD_DIR/graphhopper/graphhopper-web-${GRAPHHOPPER_VERSION}.jar"
     
-    # 创建 GraphHopper 配置文件
+    # 创建 GraphHopper 配置文件 (GraphHopper 9.x 格式)
     local config_file="$TEMP_DIR/graphhopper-config.yml"
     cat > "$config_file" << EOF
 graphhopper:
   datareader.file: $input_file
   graph.location: $output_dir
-  graph.encoded_values: road_class,road_environment,max_speed,road_access
   
+  # GraphHopper 9.x 必须参数：指定忽略的道路类型（空字符串表示不忽略）
+  import.osm.ignored_highways: ""
+
+  # 编码值：支持 car, bike, foot 的必要属性
+  graph.encoded_values: car_access, car_average_speed, bike_access, bike_average_speed, bike_priority, foot_access, foot_average_speed, foot_priority, road_class, road_environment, max_speed, road_access, roundabout, hike_rating
+
+  # GraphHopper 9.x: 使用内置的 custom_model 文件
   profiles:
     - name: car
-      vehicle: car
-      weighting: fastest
-      turn_costs: true
+      custom_model_files: [car.json]
     - name: bike
-      vehicle: bike
-      weighting: fastest
+      custom_model_files: [bike.json]
     - name: foot
-      vehicle: foot
-      weighting: shortest
+      custom_model_files: [foot.json]
       
+  # Contraction Hierarchies 预处理 - 加速路由计算
   profiles_ch:
     - profile: car
     - profile: bike
     - profile: foot
-    
-  prepare:
-    min_network_size: 200
-    
-  import.osm.ignored_highways: footway,cycleway,path,pedestrian,steps
 EOF
     
     log_info "正在导入 OSM 数据..."
+    
+    # 使用临时文件存储输出，以便正确检查退出状态
+    local log_file="$TEMP_DIR/graphhopper-import.log"
+    local exit_code=0
     
     java -Xmx4G \
         -Ddw.graphhopper.datareader.file="$input_file" \
         -Ddw.graphhopper.graph.location="$output_dir" \
         -jar "$gh_jar" \
-        import "$config_file" 2>&1 | while IFS= read -r line; do
+        import "$config_file" > "$log_file" 2>&1 || exit_code=$?
+    
+    # 显示输出日志
+    if [ -f "$log_file" ]; then
+        while IFS= read -r line; do
             if [[ -n "$line" && ! "$line" =~ ^[[:space:]]*$ ]]; then
                 echo "  $line"
             fi
-        done
+        done < "$log_file"
+    fi
     
-    # 检查结果
+    # 检查退出状态和结果目录
+    if [ $exit_code -ne 0 ]; then
+        log_error "GraphHopper 导入命令失败 (退出码: $exit_code)"
+        return 1
+    fi
+    
     if [ -d "$output_dir" ] && [ "$(ls -A "$output_dir" 2>/dev/null)" ]; then
         local size
         size=$(get_file_size "$output_dir")
         log_success "GraphHopper 路由数据生成完成: $output_dir ($size)"
         return 0
     else
-        log_error "GraphHopper 路由数据生成失败"
-        log_warn "尝试使用简化配置重新生成..."
-        
-        # 使用简化的命令行参数重试
-        java -Xmx4G -jar "$gh_jar" \
-            import "$input_file" \
-            --graph.location="$output_dir" \
-            --graph.vehicles=car,bike,foot 2>&1 || {
-                log_error "GraphHopper 生成失败"
-                return 1
-            }
+        log_error "GraphHopper 路由数据生成失败：输出目录为空"
+        return 1
     fi
 }
 

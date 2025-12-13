@@ -51,12 +51,12 @@ download_mapsforge_tools() {
         log_info "下载 Osmosis..."
         
         download_with_retry \
-            "https://github.com/openstreetmap/osmosis/releases/download/0.49.2/osmosis-0.49.2.tgz" \
-            "$DOWNLOAD_DIR/osmosis-latest.tgz" \
+            "https://github.com/openstreetmap/osmosis/releases/download/0.49.2/osmosis-0.49.2.tar" \
+            "$DOWNLOAD_DIR/osmosis-latest.tar" \
             "Osmosis" || return 1
         
         mkdir -p "$osmosis_dir"
-        tar -xzf "$DOWNLOAD_DIR/osmosis-latest.tgz" -C "$osmosis_dir"
+        tar -xf "$DOWNLOAD_DIR/osmosis-latest.tar" -C "$osmosis_dir" --strip-components=1
         chmod +x "$osmosis_dir/bin/osmosis"
         
         log_success "Osmosis 下载完成"
@@ -78,13 +78,23 @@ download_mapsforge_tools() {
         log_info "Mapsforge Writer 已存在，跳过下载"
     fi
     
-    # 配置 Osmosis 插件目录
-    local plugin_dir="$osmosis_dir/lib/default"
-    mkdir -p "$plugin_dir"
+    # 将插件 jar 复制到 osmosis lib 目录
+    local target_jar="$osmosis_dir/lib/mapsforge-map-writer-${MAPSFORGE_WRITER_VERSION}.jar"
     
-    if [ ! -f "$plugin_dir/mapsforge-map-writer-${MAPSFORGE_WRITER_VERSION}.jar" ]; then
-        cp "$writer_jar" "$plugin_dir/"
-        log_success "Mapsforge Writer 插件已安装到 Osmosis"
+    if [ ! -f "$target_jar" ]; then
+        cp "$writer_jar" "$target_jar"
+        log_success "Mapsforge Writer 插件已复制到 Osmosis lib 目录"
+        
+        # 修改 osmosis 启动脚本，添加插件到 CLASSPATH
+        local osmosis_bin="$osmosis_dir/bin/osmosis"
+        if [ -f "$osmosis_bin" ]; then
+            # 在 CLASSPATH 行末尾添加插件 jar
+            if ! grep -q "mapsforge-map-writer" "$osmosis_bin"; then
+                sed -i.bak 's|^CLASSPATH=\(.*\)$|CLASSPATH=\1:$APP_HOME/lib/mapsforge-map-writer-'"${MAPSFORGE_WRITER_VERSION}"'.jar|' "$osmosis_bin"
+                rm -f "${osmosis_bin}.bak"
+                log_success "已将插件添加到 Osmosis CLASSPATH"
+            fi
+        fi
     fi
 }
 
@@ -105,6 +115,13 @@ generate_map_file() {
     center=$(get_bbox_center "$BBOX")
     log_info "地图中心点: $center"
     
+    # 转换 bbox 格式：从 minLon,minLat,maxLon,maxLat 到 minLat,minLon,maxLat,maxLon
+    # Mapsforge 要求纬度在前，经度在后
+    local min_lon min_lat max_lon max_lat mapsforge_bbox
+    IFS=',' read -r min_lon min_lat max_lon max_lat <<< "$BBOX"
+    mapsforge_bbox="${min_lat},${min_lon},${max_lat},${max_lon}"
+    log_info "Mapsforge bbox: $mapsforge_bbox"
+    
     # 设置 Java 内存
     export JAVACMD_OPTIONS="-Xmx4G"
     
@@ -114,7 +131,7 @@ generate_map_file() {
         --mapfile-writer \
         file="$output_file" \
         type=hd \
-        bbox="$BBOX" \
+        bbox="$mapsforge_bbox" \
         map-start-position="$center" \
         map-start-zoom=12 \
         tag-conf-file="$DOWNLOAD_DIR/tag-mapping.xml" 2>/dev/null || {
@@ -124,7 +141,7 @@ generate_map_file() {
                 --mapfile-writer \
                 file="$output_file" \
                 type=hd \
-                bbox="$BBOX" \
+                bbox="$mapsforge_bbox" \
                 map-start-position="$center" \
                 map-start-zoom=12
         }
