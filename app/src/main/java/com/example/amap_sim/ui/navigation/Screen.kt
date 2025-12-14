@@ -47,6 +47,31 @@ sealed class Screen(val route: String) {
         }
     }
     
+    /**
+     * 驾车导航入口页
+     */
+    data object Drive : Screen("drive")
+    
+    /**
+     * 骑行导航入口页
+     */
+    data object Bike : Screen("bike")
+    
+    /**
+     * 步行导航入口页
+     */
+    data object Walk : Screen("walk")
+    
+    /**
+     * 路线规划入口页（快捷入口）
+     */
+    data object RoutePlanning : Screen("route_planning")
+    
+    /**
+     * 更多功能页
+     */
+    data object More : Screen("more")
+    
     companion object {
         // 路由参数名
         const val ARG_START_LAT = "startLat"

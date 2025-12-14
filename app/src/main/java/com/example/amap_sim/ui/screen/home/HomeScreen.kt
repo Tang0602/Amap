@@ -65,7 +65,12 @@ fun HomeScreen(
     mapViewModel: MapViewModel = viewModel(),
     onNavigateToSearch: () -> Unit = {},
     onNavigateToRoute: (start: LatLng, end: LatLng) -> Unit = { _, _ -> },
-    onNavigateToPoiDetail: (String) -> Unit = {}
+    onNavigateToPoiDetail: (String) -> Unit = {},
+    onNavigateToDrive: () -> Unit = {},
+    onNavigateToBike: () -> Unit = {},
+    onNavigateToWalk: () -> Unit = {},
+    onNavigateToRoutePlanning: () -> Unit = {},
+    onNavigateToMore: () -> Unit = {}
 ) {
     val uiState by mapViewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -110,26 +115,11 @@ fun HomeScreen(
             
             // 底部快捷功能入口
             BottomQuickActions(
-                onDriveClick = {
-                    scope.launch {
-                        snackbarHostState.showSnackbar("驾车导航功能开发中")
-                    }
-                },
-                onBikeClick = {
-                    scope.launch {
-                        snackbarHostState.showSnackbar("骑行导航功能开发中")
-                    }
-                },
-                onWalkClick = {
-                    scope.launch {
-                        snackbarHostState.showSnackbar("步行导航功能开发中")
-                    }
-                },
-                onMoreClick = {
-                    scope.launch {
-                        snackbarHostState.showSnackbar("更多功能开发中")
-                    }
-                },
+                onDriveClick = onNavigateToDrive,
+                onBikeClick = onNavigateToBike,
+                onWalkClick = onNavigateToWalk,
+                onRouteClick = onNavigateToRoutePlanning,
+                onMoreClick = onNavigateToMore,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 16.dp)
@@ -168,6 +158,7 @@ private fun BottomQuickActions(
     onDriveClick: () -> Unit,
     onBikeClick: () -> Unit,
     onWalkClick: () -> Unit,
+    onRouteClick: () -> Unit,
     onMoreClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -210,7 +201,7 @@ private fun BottomQuickActions(
             QuickActionItem(
                 icon = Icons.Default.NearMe,
                 label = "路线",
-                onClick = onMoreClick,
+                onClick = onRouteClick,
                 iconTint = AmapBlue
             )
             
@@ -290,6 +281,7 @@ private fun BottomQuickActionsPreview() {
                 onDriveClick = {},
                 onBikeClick = {},
                 onWalkClick = {},
+                onRouteClick = {},
                 onMoreClick = {}
             )
         }
