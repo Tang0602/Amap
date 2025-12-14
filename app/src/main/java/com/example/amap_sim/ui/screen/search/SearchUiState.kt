@@ -62,18 +62,20 @@ sealed class SearchEvent {
 
 /**
  * 默认热门分类
+ * 
+ * ID 使用数据库中的 main_category 值（中文）
  */
 val defaultCategories = listOf(
-    CategoryItem("restaurant", "美食", "restaurant"),
-    CategoryItem("hotel", "酒店", "hotel"),
-    CategoryItem("subway_station", "地铁", "subway"),
-    CategoryItem("bus_station", "公交", "directions_bus"),
-    CategoryItem("parking", "停车场", "local_parking"),
-    CategoryItem("fuel", "加油站", "local_gas_station"),
-    CategoryItem("bank", "银行", "account_balance"),
-    CategoryItem("hospital", "医院", "local_hospital"),
-    CategoryItem("pharmacy", "药店", "local_pharmacy"),
-    CategoryItem("supermarket", "超市", "shopping_cart"),
-    CategoryItem("cafe", "咖啡", "local_cafe"),
-    CategoryItem("attraction", "景点", "attractions")
+    CategoryItem("餐饮", "美食", "restaurant"),
+    CategoryItem("住宿", "酒店", "hotel"),
+    CategoryItem("交通", "交通", "directions_bus"),
+    CategoryItem("购物", "购物", "shopping_cart"),
+    CategoryItem("金融", "银行", "account_balance"),
+    CategoryItem("医疗", "医疗", "local_hospital"),
+    CategoryItem("教育", "教育", "school"),
+    CategoryItem("休闲", "休闲", "sports_esports"),
+    CategoryItem("景点", "景点", "attractions"),
+    CategoryItem("政务", "政务", "account_balance"),
+    CategoryItem("生活服务", "生活", "home_repair_service"),
+    CategoryItem("办公", "办公", "business")
 )

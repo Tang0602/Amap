@@ -148,15 +148,24 @@ class SplashViewModel : ViewModel() {
     }
     
     /**
-     * 预加载服务（可选优化）
+     * 预加载服务
      */
     private suspend fun preloadServices() {
         try {
-            // 可以在这里预初始化 GraphHopper 等服务
-            // 但这会增加启动时间，所以暂时跳过
+            // 初始化搜索服务
+            _uiState.update { it.copy(message = "正在加载搜索服务...") }
+            val searchResult = ServiceLocator.searchService.initialize()
+            if (searchResult.isFailure) {
+                android.util.Log.w("SplashViewModel", "搜索服务初始化失败: ${searchResult.exceptionOrNull()?.message}")
+            }
+            
+            // 可以在这里预初始化 GraphHopper 路由服务
+            // 但这会增加启动时间，建议延迟加载
+            // _uiState.update { it.copy(message = "正在加载路由服务...") }
             // ServiceLocator.routingService.initialize()
         } catch (e: Exception) {
-            // 预加载失败不影响启动
+            // 预加载失败不影响启动，记录日志即可
+            android.util.Log.w("SplashViewModel", "预加载服务失败", e)
         }
     }
     

@@ -55,7 +55,8 @@ class OfflineSearchService(
     private object Columns {
         const val ID = "id"
         const val NAME = "name"
-        const val CATEGORY = "category"
+        const val MAIN_CATEGORY = "main_category"
+        const val SUB_CATEGORY = "sub_category"
         const val LAT = "lat"
         const val LON = "lon"
         const val ADDRESS = "address"
@@ -195,7 +196,7 @@ class OfflineSearchService(
             
             // FTS 搜索（匹配名称或地址）
             val ftsQuery = """
-                SELECT p.${Columns.ID}, p.${Columns.NAME}, p.${Columns.CATEGORY},
+                SELECT p.${Columns.ID}, p.${Columns.NAME}, p.${Columns.MAIN_CATEGORY},
                        p.${Columns.LAT}, p.${Columns.LON}, p.${Columns.ADDRESS}, p.${Columns.PHONE}
                 FROM ${Tables.POI} p
                 INNER JOIN ${Tables.POI_FTS} f ON p.${Columns.ID} = f.rowid
@@ -236,7 +237,7 @@ class OfflineSearchService(
         }
         
         val query = """
-            SELECT ${Columns.ID}, ${Columns.NAME}, ${Columns.CATEGORY},
+            SELECT ${Columns.ID}, ${Columns.NAME}, ${Columns.MAIN_CATEGORY},
                    ${Columns.LAT}, ${Columns.LON}, ${Columns.ADDRESS}, ${Columns.PHONE}
             FROM ${Tables.POI}
             WHERE (${Columns.NAME} LIKE ? OR ${Columns.ADDRESS} LIKE ?)
@@ -287,14 +288,14 @@ class OfflineSearchService(
             val maxLon = center.lon + lonRange
             
             val categoryClause = if (category != null) {
-                "AND ${Columns.CATEGORY} = ?"
+                "AND ${Columns.MAIN_CATEGORY} = ?"
             } else {
                 ""
             }
             
             // 使用 Haversine 公式计算精确距离
             val query = """
-                SELECT ${Columns.ID}, ${Columns.NAME}, ${Columns.CATEGORY},
+                SELECT ${Columns.ID}, ${Columns.NAME}, ${Columns.MAIN_CATEGORY},
                        ${Columns.LAT}, ${Columns.LON}, ${Columns.ADDRESS}, ${Columns.PHONE},
                        (6371000 * acos(
                            cos(radians(?)) * cos(radians(${Columns.LAT})) *
@@ -331,7 +332,7 @@ class OfflineSearchService(
             
             // 简化查询（不使用 SQLite 的数学函数，改为在代码中计算距离）
             val simpleQuery = """
-                SELECT ${Columns.ID}, ${Columns.NAME}, ${Columns.CATEGORY},
+                SELECT ${Columns.ID}, ${Columns.NAME}, ${Columns.MAIN_CATEGORY},
                        ${Columns.LAT}, ${Columns.LON}, ${Columns.ADDRESS}, ${Columns.PHONE}
                 FROM ${Tables.POI}
                 WHERE ${Columns.LAT} BETWEEN ? AND ?
@@ -392,10 +393,10 @@ class OfflineSearchService(
             Log.d(TAG, "分类搜索: $category, limit=$limit")
             
             val query = """
-                SELECT ${Columns.ID}, ${Columns.NAME}, ${Columns.CATEGORY},
+                SELECT ${Columns.ID}, ${Columns.NAME}, ${Columns.MAIN_CATEGORY},
                        ${Columns.LAT}, ${Columns.LON}, ${Columns.ADDRESS}, ${Columns.PHONE}
                 FROM ${Tables.POI}
-                WHERE ${Columns.CATEGORY} = ?
+                WHERE ${Columns.MAIN_CATEGORY} = ?
                 LIMIT ?
             """.trimIndent()
             
@@ -434,9 +435,9 @@ class OfflineSearchService(
             requireNotNull(db) { "搜索服务未初始化" }
             
             val query = """
-                SELECT DISTINCT ${Columns.CATEGORY}
+                SELECT DISTINCT ${Columns.MAIN_CATEGORY}
                 FROM ${Tables.POI}
-                ORDER BY ${Columns.CATEGORY}
+                ORDER BY ${Columns.MAIN_CATEGORY}
             """.trimIndent()
             
             val categories = mutableListOf<String>()
@@ -465,9 +466,9 @@ class OfflineSearchService(
             requireNotNull(db) { "搜索服务未初始化" }
             
             val query = """
-                SELECT ${Columns.CATEGORY}, COUNT(*) as count
+                SELECT ${Columns.MAIN_CATEGORY}, COUNT(*) as count
                 FROM ${Tables.POI}
-                GROUP BY ${Columns.CATEGORY}
+                GROUP BY ${Columns.MAIN_CATEGORY}
                 ORDER BY count DESC
                 LIMIT 10
             """.trimIndent()
@@ -498,7 +499,7 @@ class OfflineSearchService(
             requireNotNull(db) { "搜索服务未初始化" }
             
             val query = """
-                SELECT ${Columns.ID}, ${Columns.NAME}, ${Columns.CATEGORY},
+                SELECT ${Columns.ID}, ${Columns.NAME}, ${Columns.MAIN_CATEGORY},
                        ${Columns.LAT}, ${Columns.LON}, ${Columns.ADDRESS}, ${Columns.PHONE}
                 FROM ${Tables.POI}
                 WHERE ${Columns.ID} = ?
@@ -548,7 +549,7 @@ class OfflineSearchService(
         return PoiResult(
             id = cursor.getLong(cursor.getColumnIndexOrThrow(Columns.ID)),
             name = cursor.getString(cursor.getColumnIndexOrThrow(Columns.NAME)) ?: "",
-            category = cursor.getString(cursor.getColumnIndexOrThrow(Columns.CATEGORY)) ?: "",
+            category = cursor.getString(cursor.getColumnIndexOrThrow(Columns.MAIN_CATEGORY)) ?: "",
             lat = cursor.getDouble(cursor.getColumnIndexOrThrow(Columns.LAT)),
             lon = cursor.getDouble(cursor.getColumnIndexOrThrow(Columns.LON)),
             address = cursor.getStringOrNull(Columns.ADDRESS),

@@ -105,9 +105,27 @@ object PoiCategory {
     
     /**
      * 获取分类显示名称
+     * 
+     * 支持中文 main_category（数据库存储的值）和英文分类常量
      */
     fun getDisplayName(category: String): String {
         return when (category) {
+            // 中文 main_category（数据库实际存储值）
+            "餐饮" -> "美食"
+            "购物" -> "购物"
+            "交通" -> "交通"
+            "住宿" -> "酒店"
+            "医疗" -> "医疗"
+            "教育" -> "教育"
+            "金融" -> "金融"
+            "政务" -> "政务"
+            "休闲" -> "休闲"
+            "景点" -> "景点"
+            "宗教" -> "宗教"
+            "生活服务" -> "生活"
+            "住宅" -> "住宅"
+            "办公" -> "办公"
+            // 兼容英文分类常量
             RESTAURANT -> "餐厅"
             CAFE -> "咖啡厅"
             FAST_FOOD -> "快餐"

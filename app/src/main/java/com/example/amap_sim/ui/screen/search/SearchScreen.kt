@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,6 +30,8 @@ import androidx.compose.material.icons.filled.Attractions
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.DirectionsBus
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Business
+import androidx.compose.material.icons.filled.HomeRepairService
 import androidx.compose.material.icons.filled.Hotel
 import androidx.compose.material.icons.filled.LocalCafe
 import androidx.compose.material.icons.filled.LocalGasStation
@@ -37,8 +40,10 @@ import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.LocalParking
 import androidx.compose.material.icons.filled.LocalPharmacy
 import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.SportsEsports
 import androidx.compose.material.icons.filled.Subway
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
@@ -102,6 +107,8 @@ private fun SearchScreenContent(
     onEvent: (SearchEvent) -> Unit,
     onNavigateBack: () -> Unit
 ) {
+    val focusManager = LocalFocusManager.current
+    
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
@@ -118,6 +125,7 @@ private fun SearchScreenContent(
                 onBackClick = onNavigateBack,
                 onSearch = { onEvent(SearchEvent.Search(it)) },
                 onClear = { onEvent(SearchEvent.ClearSearch) },
+                autoFocus = !uiState.showResults,  // 只在初始页面自动获取焦点
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
             
@@ -139,8 +147,14 @@ private fun SearchScreenContent(
                         InitialContent(
                             categories = uiState.popularCategories,
                             searchHistory = uiState.searchHistory,
-                            onCategoryClick = { onEvent(SearchEvent.SelectCategory(it)) },
-                            onHistoryClick = { onEvent(SearchEvent.SelectHistory(it)) },
+                            onCategoryClick = { category ->
+                                focusManager.clearFocus()  // 隐藏键盘
+                                onEvent(SearchEvent.SelectCategory(category))
+                            },
+                            onHistoryClick = { query ->
+                                focusManager.clearFocus()  // 隐藏键盘
+                                onEvent(SearchEvent.SelectHistory(query))
+                            },
                             onClearHistory = { onEvent(SearchEvent.ClearHistory) }
                         )
                     }
@@ -445,18 +459,18 @@ private fun ErrorContent(
  */
 private fun getCategoryIcon(categoryId: String): ImageVector {
     return when (categoryId) {
-        "restaurant" -> Icons.Default.Restaurant
-        "cafe" -> Icons.Default.LocalCafe
-        "hotel" -> Icons.Default.Hotel
-        "subway_station" -> Icons.Default.Subway
-        "bus_station" -> Icons.Default.DirectionsBus
-        "parking" -> Icons.Default.LocalParking
-        "fuel" -> Icons.Default.LocalGasStation
-        "bank" -> Icons.Default.AccountBalance
-        "hospital" -> Icons.Default.LocalHospital
-        "pharmacy" -> Icons.Default.LocalPharmacy
-        "supermarket" -> Icons.Default.ShoppingCart
-        "attraction" -> Icons.Default.Attractions
+        "餐饮" -> Icons.Default.Restaurant
+        "住宿" -> Icons.Default.Hotel
+        "交通" -> Icons.Default.DirectionsBus
+        "购物" -> Icons.Default.ShoppingCart
+        "金融" -> Icons.Default.AccountBalance
+        "医疗" -> Icons.Default.LocalHospital
+        "教育" -> Icons.Default.School
+        "休闲" -> Icons.Default.SportsEsports
+        "景点" -> Icons.Default.Attractions
+        "政务" -> Icons.Default.AccountBalance
+        "生活服务" -> Icons.Default.HomeRepairService
+        "办公" -> Icons.Default.Business
         else -> Icons.Default.LocationOn
     }
 }
@@ -466,18 +480,18 @@ private fun getCategoryIcon(categoryId: String): ImageVector {
  */
 private fun getCategoryDisplayName(categoryId: String): String {
     return when (categoryId) {
-        "restaurant" -> "美食"
-        "cafe" -> "咖啡"
-        "hotel" -> "酒店"
-        "subway_station" -> "地铁站"
-        "bus_station" -> "公交站"
-        "parking" -> "停车场"
-        "fuel" -> "加油站"
-        "bank" -> "银行"
-        "hospital" -> "医院"
-        "pharmacy" -> "药店"
-        "supermarket" -> "超市"
-        "attraction" -> "景点"
+        "餐饮" -> "美食"
+        "住宿" -> "酒店"
+        "交通" -> "交通"
+        "购物" -> "购物"
+        "金融" -> "银行"
+        "医疗" -> "医疗"
+        "教育" -> "教育"
+        "休闲" -> "休闲"
+        "景点" -> "景点"
+        "政务" -> "政务"
+        "生活服务" -> "生活"
+        "办公" -> "办公"
         else -> categoryId
     }
 }

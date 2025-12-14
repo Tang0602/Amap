@@ -47,20 +47,42 @@ class SearchViewModel : ViewModel() {
     private val searchHistoryList = mutableListOf<String>()
     
     init {
-        loadInitialData()
+        initializeAndLoadData()
     }
     
     /**
-     * 加载初始数据
+     * 初始化搜索服务并加载数据
      */
-    private fun loadInitialData() {
+    private fun initializeAndLoadData() {
         viewModelScope.launch {
             try {
+                // 确保搜索服务已初始化
+                if (!searchService.isReady()) {
+                    Log.d(TAG, "搜索服务未初始化，正在初始化...")
+                    val result = searchService.initialize()
+                    if (result.isFailure) {
+                        Log.e(TAG, "搜索服务初始化失败", result.exceptionOrNull())
+                        _uiState.update { 
+                            it.copy(
+                                error = "搜索服务初始化失败: ${result.exceptionOrNull()?.message}",
+                                popularCategories = defaultCategories
+                            )
+                        }
+                        return@launch
+                    }
+                }
+                
                 // 加载热门分类
                 val categories = loadPopularCategories()
-                _uiState.update { it.copy(popularCategories = categories) }
+                _uiState.update { it.copy(popularCategories = categories, error = null) }
             } catch (e: Exception) {
                 Log.e(TAG, "加载初始数据失败", e)
+                _uiState.update { 
+                    it.copy(
+                        error = "加载失败: ${e.message}",
+                        popularCategories = defaultCategories
+                    )
+                }
             }
         }
     }
@@ -154,6 +176,22 @@ class SearchViewModel : ViewModel() {
         _uiState.update { it.copy(isLoading = true, error = null) }
         
         try {
+            // 确保搜索服务已初始化
+            if (!searchService.isReady()) {
+                val initResult = searchService.initialize()
+                if (initResult.isFailure) {
+                    _uiState.update { 
+                        it.copy(
+                            error = "搜索服务不可用",
+                            isLoading = false,
+                            showResults = true,
+                            searchResults = emptyList()
+                        ) 
+                    }
+                    return
+                }
+            }
+            
             val result = searchService.searchByKeyword(
                 keyword = query,
                 limit = 50,
@@ -201,10 +239,14 @@ class SearchViewModel : ViewModel() {
         // 取消之前的搜索任务
         searchJob?.cancel()
         
+        // 获取分类的显示名称
+        val displayName = _uiState.value.popularCategories
+            .find { it.id == category }?.displayName ?: category
+        
         _uiState.update { 
             it.copy(
                 selectedCategory = category,
-                query = "",
+                query = displayName,  // 显示分类名称到搜索栏
                 isLoading = true,
                 error = null
             ) 
@@ -212,6 +254,22 @@ class SearchViewModel : ViewModel() {
         
         searchJob = viewModelScope.launch {
             try {
+                // 确保搜索服务已初始化
+                if (!searchService.isReady()) {
+                    val initResult = searchService.initialize()
+                    if (initResult.isFailure) {
+                        _uiState.update { 
+                            it.copy(
+                                error = "搜索服务不可用",
+                                isLoading = false,
+                                showResults = true,
+                                searchResults = emptyList()
+                            ) 
+                        }
+                        return@launch
+                    }
+                }
+                
                 val result = searchService.searchByCategory(
                     category = category,
                     center = defaultCenter,
