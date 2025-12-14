@@ -73,7 +73,7 @@ import com.example.amap_sim.ui.theme.Gray500
 @Composable
 fun PoiDetailScreen(
     onNavigateBack: () -> Unit,
-    onNavigateToRoute: (Double, Double) -> Unit,
+    onNavigateToRoute: (Double, Double, String) -> Unit,
     viewModel: PoiDetailViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -85,7 +85,7 @@ fun PoiDetailScreen(
             when (event) {
                 PoiDetailNavigationEvent.Back -> onNavigateBack()
                 is PoiDetailNavigationEvent.NavigateToRoute -> {
-                    onNavigateToRoute(event.destLat, event.destLon)
+                    onNavigateToRoute(event.destLat, event.destLon, event.destName)
                 }
                 is PoiDetailNavigationEvent.MakePhoneCall -> {
                     val intent = Intent(Intent.ACTION_DIAL).apply {

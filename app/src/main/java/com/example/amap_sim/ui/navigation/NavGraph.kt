@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Navigation
 import com.example.amap_sim.ui.screen.common.UnderConstructionScreen
 import com.example.amap_sim.ui.screen.detail.PoiDetailScreen
 import com.example.amap_sim.ui.screen.home.HomeScreen
+import com.example.amap_sim.ui.screen.route.RoutePlanningScreen
 import com.example.amap_sim.ui.screen.search.SearchScreen
 import com.example.amap_sim.ui.screen.splash.SplashScreen
 
@@ -190,10 +191,11 @@ fun AmapNavGraph(
         ) { backStackEntry ->
             PoiDetailScreen(
                 onNavigateBack = { navController.popBackStack() },
-                onNavigateToRoute = { destLat, destLon ->
-                    // TODO: 跳转到路线规划页
-                    // 暂时跳转到路线规划占位页
-                    navController.navigate(Screen.RoutePlanning.route)
+                onNavigateToRoute = { destLat, destLon, destName ->
+                    // 跳转到路线规划页，携带目的地参数
+                    navController.navigate(
+                        Screen.RoutePlanning.createRoute(destLat, destLon, destName)
+                    )
                 }
             )
         }
@@ -273,6 +275,21 @@ fun AmapNavGraph(
         // 路线规划入口页
         composable(
             route = Screen.RoutePlanning.route,
+            arguments = listOf(
+                navArgument(Screen.ARG_DEST_LAT) {
+                    type = NavType.FloatType
+                    defaultValue = Float.NaN
+                },
+                navArgument(Screen.ARG_DEST_LON) {
+                    type = NavType.FloatType
+                    defaultValue = Float.NaN
+                },
+                navArgument(Screen.ARG_DEST_NAME) {
+                    type = NavType.StringType
+                    defaultValue = ""
+                    nullable = true
+                }
+            ),
             enterTransition = {
                 slideIntoContainer(
                     towards = AnimatedContentTransitionScope.SlideDirection.Up,
@@ -286,11 +303,16 @@ fun AmapNavGraph(
                 )
             }
         ) {
-            UnderConstructionScreen(
-                title = "路线",
-                description = "路线规划功能正在开发中，即将支持多种出行方式的路线规划！",
-                icon = Icons.Default.Directions,
-                onNavigateBack = { navController.popBackStack() }
+            RoutePlanningScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToSearch = { isSelectingStart ->
+                    // TODO: 跳转到搜索页选择起点或终点
+                    navController.navigate(Screen.Search.route)
+                },
+                onStartNavigation = { routeResult ->
+                    // TODO: 跳转到导航页
+                    navController.navigate(Screen.Navigation.createRoute("temp_route_id"))
+                }
             )
         }
         
