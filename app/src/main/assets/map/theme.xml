@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rendertheme xmlns="http://mapsforge.org/renderTheme" 
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="http://mapsforge.org/renderTheme https://raw.githubusercontent.com/mapsforge/mapsforge/master/resources/renderTheme.xsd"
+             version="6" 
+             map-background="#F8F8F8"
+             map-background-outside="#DDDDDD">
+
+    <!-- 仿高德地图配色主题 -->
+    
+    <!-- 水域 -->
+    <rule e="way" k="natural" v="water|bay">
+        <area fill="#B5D0D0" stroke="#6699CC" stroke-width="0.5"/>
+    </rule>
+    <rule e="way" k="waterway" v="*">
+        <line stroke="#B5D0D0" stroke-width="1.5"/>
+    </rule>
+    
+    <!-- 绿地 -->
+    <rule e="way" k="landuse" v="forest|wood">
+        <area fill="#C8FACC"/>
+    </rule>
+    <rule e="way" k="landuse" v="grass|meadow">
+        <area fill="#DCEFB5"/>
+    </rule>
+    <rule e="way" k="leisure" v="park|garden">
+        <area fill="#D0F0C0"/>
+    </rule>
+    
+    <!-- 建筑 -->
+    <rule e="way" k="building" v="*">
+        <area fill="#E0E0E0" stroke="#C0C0C0" stroke-width="0.3"/>
+    </rule>
+    
+    <!-- 道路 - 高速公路 -->
+    <rule e="way" k="highway" v="motorway|motorway_link">
+        <line stroke="#FFAA00" stroke-width="4" stroke-linecap="round"/>
+        <line stroke="#FFCC33" stroke-width="3" stroke-linecap="round"/>
+    </rule>
+    
+    <!-- 道路 - 国道/主干道 -->
+    <rule e="way" k="highway" v="trunk|trunk_link|primary|primary_link">
+        <line stroke="#FFA500" stroke-width="3" stroke-linecap="round"/>
+        <line stroke="#FFCC66" stroke-width="2.5" stroke-linecap="round"/>
+    </rule>
+    
+    <!-- 道路 - 次干道 -->
+    <rule e="way" k="highway" v="secondary|secondary_link">
+        <line stroke="#DDDDDD" stroke-width="2.5" stroke-linecap="round"/>
+        <line stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/>
+    </rule>
+    
+    <!-- 道路 - 一般道路 -->
+    <rule e="way" k="highway" v="tertiary|tertiary_link|residential|living_street">
+        <line stroke="#CCCCCC" stroke-width="2" stroke-linecap="round"/>
+        <line stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round"/>
+    </rule>
+    
+    <!-- 道路 - 小路 -->
+    <rule e="way" k="highway" v="unclassified|service|footway|path">
+        <line stroke="#DDDDDD" stroke-width="1" stroke-linecap="round"/>
+    </rule>
+    
+    <!-- 铁路 -->
+    <rule e="way" k="railway" v="rail">
+        <line stroke="#666666" stroke-width="2" stroke-dasharray="8,4"/>
+    </rule>
+    
+    <!-- 行政边界 -->
+    <rule e="way" k="boundary" v="administrative">
+        <line stroke="#FF6666" stroke-width="1" stroke-dasharray="10,5"/>
+    </rule>
+    
+    <!-- POI 标注 - 医院 -->
+    <rule e="node" k="amenity" v="hospital">
+        <symbol src="file:/osm-symbols/hospital.svg" symbol-width="16"/>
+        <caption k="name" font-size="10" fill="#CC0000" stroke="#FFFFFF" stroke-width="2"/>
+    </rule>
+    
+    <!-- POI 标注 - 学校 -->
+    <rule e="node" k="amenity" v="school|university|college">
+        <symbol src="file:/osm-symbols/school.svg" symbol-width="14"/>
+        <caption k="name" font-size="10" fill="#333399" stroke="#FFFFFF" stroke-width="2"/>
+    </rule>
+    
+    <!-- POI 标注 - 购物 -->
+    <rule e="node" k="shop" v="*">
+        <caption k="name" font-size="9" fill="#666666" stroke="#FFFFFF" stroke-width="1.5"/>
+    </rule>
+    
+    <!-- 道路名称标注 -->
+    <rule e="way" k="highway" v="motorway|trunk|primary">
+        <pathText k="name" font-size="12" fill="#333333" stroke="#FFFFFF" stroke-width="3"/>
+    </rule>
+    <rule e="way" k="highway" v="secondary|tertiary">
+        <pathText k="name" font-size="10" fill="#666666" stroke="#FFFFFF" stroke-width="2"/>
+    </rule>
+    
+</rendertheme>
