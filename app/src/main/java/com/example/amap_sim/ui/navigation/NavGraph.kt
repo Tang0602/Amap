@@ -17,11 +17,10 @@ import androidx.compose.material.icons.filled.DirectionsBike
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.Directions
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Navigation
-import androidx.compose.material.icons.filled.Search
 import com.example.amap_sim.ui.screen.common.UnderConstructionScreen
+import com.example.amap_sim.ui.screen.detail.PoiDetailScreen
 import com.example.amap_sim.ui.screen.home.HomeScreen
 import com.example.amap_sim.ui.screen.search.SearchScreen
 import com.example.amap_sim.ui.screen.splash.SplashScreen
@@ -189,11 +188,13 @@ fun AmapNavGraph(
                 )
             }
         ) { backStackEntry ->
-            UnderConstructionScreen(
-                title = "地点详情",
-                description = "地点详情功能正在开发中，即将支持查看详细信息、评价、导航等功能！",
-                icon = Icons.Default.Info,
-                onNavigateBack = { navController.popBackStack() }
+            PoiDetailScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToRoute = { destLat, destLon ->
+                    // TODO: 跳转到路线规划页
+                    // 暂时跳转到路线规划占位页
+                    navController.navigate(Screen.RoutePlanning.route)
+                }
             )
         }
         

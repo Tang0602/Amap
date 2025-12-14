@@ -315,6 +315,11 @@ app/src/main/
 │   │   │   │       ├── SearchBar.kt
 │   │   │   │       └── PoiListItem.kt
 │   │   │   │
+│   │   │   ├── detail/                      # POI详情页
+│   │   │   │   ├── PoiDetailScreen.kt
+│   │   │   │   ├── PoiDetailViewModel.kt
+│   │   │   │   └── PoiDetailUiState.kt
+│   │   │   │
 │   │   │   └── navigation/                  # 导航页
 │   │   │       ├── NavigationScreen.kt
 │   │   │       ├── NavigationViewModel.kt
@@ -535,9 +540,10 @@ data class MapUiState(
 
 ### 阶段四：UI 页面（2-3天）
 
-- [ ] 实现启动页（数据初始化）
-- [ ] 实现主页（地图 + 搜索框）
-- [ ] 实现搜索页
+- [x] 实现启动页（数据初始化）
+- [x] 实现主页（地图 + 搜索框）
+- [x] 实现搜索页
+- [x] 实现 POI 详情页
 - [ ] 实现路线规划页
 - [ ] 实现导航页
 
