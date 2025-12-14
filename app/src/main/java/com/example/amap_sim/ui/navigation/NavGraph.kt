@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Search
 import com.example.amap_sim.ui.screen.common.UnderConstructionScreen
 import com.example.amap_sim.ui.screen.home.HomeScreen
+import com.example.amap_sim.ui.screen.search.SearchScreen
 import com.example.amap_sim.ui.screen.splash.SplashScreen
 
 /**
@@ -115,11 +116,12 @@ fun AmapNavGraph(
                 )
             }
         ) {
-            UnderConstructionScreen(
-                title = "搜索",
-                description = "搜索功能正在开发中，即将支持地点搜索、路线查询等功能！",
-                icon = Icons.Default.Search,
-                onNavigateBack = { navController.popBackStack() }
+            SearchScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onPoiSelected = { poi ->
+                    // 导航到 POI 详情页
+                    navController.navigate(Screen.PoiDetail.createRoute(poi.id.toString()))
+                }
             )
         }
         
