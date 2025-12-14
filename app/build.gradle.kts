@@ -6,18 +6,18 @@ plugins {
 
 android {
     namespace = "com.example.amap_sim"
-    compileSdk = 36
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.example.amap_sim"
         minSdk = 24
-        targetSdk = 36
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // GraphHopper 可能需要 MultiDex（方法数超过 64K）
+        // GraphHopper 需要 MultiDex
         multiDexEnabled = true
     }
 
@@ -31,7 +31,6 @@ android {
         }
     }
 
-    // GraphHopper 需要 Java 17
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -41,78 +40,59 @@ android {
         jvmTarget = "17"
     }
 
-    // 启用 Jetpack Compose
     buildFeatures {
         compose = true
     }
 
-    // GraphHopper 需要排除重复的 META-INF 文件
+    // GraphHopper 需要排除重复的 META-INF
     packaging {
         resources {
-            excludes += setOf(
-                "META-INF/DEPENDENCIES",
-                "META-INF/LICENSE",
-                "META-INF/LICENSE.txt",
-                "META-INF/license.txt",
-                "META-INF/NOTICE",
-                "META-INF/NOTICE.txt",
-                "META-INF/notice.txt",
-                "META-INF/ASL2.0",
-                "META-INF/*.kotlin_module"
-            )
+            excludes += "META-INF/DEPENDENCIES"
+            excludes += "META-INF/LICENSE*"
+            excludes += "META-INF/NOTICE*"
+            excludes += "META-INF/INDEX.LIST"
         }
     }
 }
 
 dependencies {
-    // ========================================
-    // AndroidX 基础
-    // ========================================
+    // AndroidX 核心
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
 
-    // ========================================
     // Jetpack Compose
-    // ========================================
     implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.bundles.compose)
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.ui.graphics)
+    implementation(libs.androidx.compose.ui.tooling.preview)
+    implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.activity.compose)
+    debugImplementation(libs.androidx.compose.ui.tooling)
+
+    // Lifecycle + ViewModel
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+
+    // Navigation Compose
     implementation(libs.androidx.navigation.compose)
 
-    // Compose Debug/Preview 工具
-    debugImplementation(libs.androidx.compose.ui.tooling)
-    debugImplementation(libs.androidx.compose.ui.test.manifest)
+    // Coroutines
+    implementation(libs.kotlinx.coroutines.android)
 
-    // ========================================
-    // Mapsforge - 离线地图渲染
-    // ========================================
-    // 核心库：地图渲染引擎（纯 Java，无 Native 依赖）
-    implementation(libs.bundles.mapsforge)
+    // Mapsforge 离线地图
+    implementation(libs.mapsforge.core)
+    implementation(libs.mapsforge.map.android)
+    implementation(libs.mapsforge.poi.android)
 
-    // ========================================
-    // GraphHopper - 离线路由规划
-    // ========================================
-    // 路由引擎（排除不需要的服务端依赖）
+    // GraphHopper 离线路由（排除服务端依赖）
     implementation(libs.graphhopper.core) {
-        // 排除服务端依赖，减小 APK 体积
         exclude(group = "org.eclipse.jetty")
         exclude(group = "com.fasterxml.jackson.dataformat", module = "jackson-dataformat-xml")
     }
-
-    // SLF4J Android 日志实现（GraphHopper 依赖）
     implementation(libs.slf4j.android)
 
-    // ========================================
-    // Kotlin Coroutines - 异步处理
-    // ========================================
-    implementation(libs.bundles.coroutines)
-
-    // ========================================
-    // 测试依赖
-    // ========================================
+    // 测试
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
