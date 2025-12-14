@@ -1,5 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- 高德蓝 -->
+    <color name="amap_blue">#FF3385FF</color>
+    <color name="amap_blue_dark">#FF0066CC</color>
+    <color name="amap_blue_light">#FF66A3FF</color>
+    
+    <!-- 辅助色 -->
+    <color name="amap_green">#FF00CC66</color>
+    <color name="amap_orange">#FFFF8C00</color>
+    <color name="amap_red">#FFFF4D4D</color>
+    
+    <!-- 中性色 -->
+    <color name="gray_50">#FFFAFAFA</color>
+    <color name="gray_100">#FFF5F5F5</color>
+    <color name="gray_200">#FFEEEEEE</color>
+    <color name="gray_500">#FF9E9E9E</color>
+    <color name="gray_700">#FF616161</color>
+    <color name="gray_900">#FF212121</color>
+    
+    <!-- 旧色值（保持兼容） -->
     <color name="purple_200">#FFBB86FC</color>
     <color name="purple_500">#FF6200EE</color>
     <color name="purple_700">#FF3700B3</color>

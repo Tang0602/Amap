@@ -1,0 +1,59 @@
+package com.example.amap_sim.ui.navigation
+
+/**
+ * 应用页面路由定义
+ */
+sealed class Screen(val route: String) {
+    
+    /**
+     * 启动页 - 数据初始化
+     */
+    data object Splash : Screen("splash")
+    
+    /**
+     * 主页 - 地图 + 搜索入口
+     */
+    data object Home : Screen("home")
+    
+    /**
+     * 搜索页 - POI 搜索
+     */
+    data object Search : Screen("search")
+    
+    /**
+     * 路线规划页
+     */
+    data object Route : Screen("route/{startLat}/{startLon}/{endLat}/{endLon}") {
+        fun createRoute(startLat: Double, startLon: Double, endLat: Double, endLon: Double): String {
+            return "route/$startLat/$startLon/$endLat/$endLon"
+        }
+    }
+    
+    /**
+     * 导航页 - 实时导航
+     */
+    data object Navigation : Screen("navigation/{routeId}") {
+        fun createRoute(routeId: String): String {
+            return "navigation/$routeId"
+        }
+    }
+    
+    /**
+     * POI 详情页
+     */
+    data object PoiDetail : Screen("poi/{poiId}") {
+        fun createRoute(poiId: String): String {
+            return "poi/$poiId"
+        }
+    }
+    
+    companion object {
+        // 路由参数名
+        const val ARG_START_LAT = "startLat"
+        const val ARG_START_LON = "startLon"
+        const val ARG_END_LAT = "endLat"
+        const val ARG_END_LON = "endLon"
+        const val ARG_ROUTE_ID = "routeId"
+        const val ARG_POI_ID = "poiId"
+    }
+}

@@ -20,6 +20,9 @@ navigationCompose = "2.8.4"
 # Coroutines
 coroutines = "1.8.1"
 
+# SplashScreen
+splashscreen = "1.0.1"
+
 # Mapsforge 离线地图
 mapsforge = "0.21.0"
 
@@ -40,7 +43,11 @@ androidx-compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graph
 androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
+androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
+
+# SplashScreen
+androidx-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "splashscreen" }
 
 # Lifecycle & ViewModel
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
@@ -55,6 +62,7 @@ kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-
 # Mapsforge 离线地图
 mapsforge-core = { group = "org.mapsforge", name = "mapsforge-core", version.ref = "mapsforge" }
 mapsforge-map-android = { group = "org.mapsforge", name = "mapsforge-map-android", version.ref = "mapsforge" }
+mapsforge-themes = { group = "org.mapsforge", name = "mapsforge-themes", version.ref = "mapsforge" }
 mapsforge-poi-android = { group = "org.mapsforge", name = "mapsforge-poi-android", version.ref = "mapsforge" }
 
 # GraphHopper 离线路由

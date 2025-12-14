@@ -67,8 +67,12 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.activity.compose)
     debugImplementation(libs.androidx.compose.ui.tooling)
+
+    // SplashScreen
+    implementation(libs.androidx.splashscreen)
 
     // Lifecycle + ViewModel
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -83,6 +87,7 @@ dependencies {
     // Mapsforge 离线地图
     implementation(libs.mapsforge.core)
     implementation(libs.mapsforge.map.android)
+    implementation(libs.mapsforge.themes)
     implementation(libs.mapsforge.poi.android)
 
     // GraphHopper 离线路由（排除服务端依赖）

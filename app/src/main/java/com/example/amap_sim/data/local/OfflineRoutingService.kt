@@ -162,7 +162,7 @@ class OfflineRoutingService(
             // 提取路线点
             val routePoints = mutableListOf<LatLng>()
             val pointList = path.points
-            for (i in 0 until pointList.size) {
+            for (i in 0 until pointList.size()) {
                 routePoints.add(LatLng(pointList.getLat(i), pointList.getLon(i)))
             }
             
@@ -171,7 +171,7 @@ class OfflineRoutingService(
             val instructionList = path.instructions
             for (instruction in instructionList) {
                 val firstPoint = instruction.points
-                val location = if (firstPoint.size > 0) {
+                val location = if (firstPoint.size() > 0) {
                     LatLng(firstPoint.getLat(0), firstPoint.getLon(0))
                 } else {
                     points.first()

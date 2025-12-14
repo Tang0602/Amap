@@ -29,7 +29,6 @@ import com.example.amap_sim.ui.screen.map.MapCommand
 import com.example.amap_sim.ui.screen.map.MapEvent
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
-import org.mapsforge.core.graphics.Color
 import org.mapsforge.core.graphics.Paint
 import org.mapsforge.core.graphics.Style
 import org.mapsforge.core.model.LatLong
@@ -43,6 +42,7 @@ import org.mapsforge.map.layer.overlay.Polyline
 import org.mapsforge.map.layer.renderer.TileRendererLayer
 import org.mapsforge.map.reader.MapFile
 import org.mapsforge.map.rendertheme.ExternalRenderTheme
+import org.mapsforge.map.rendertheme.InternalRenderTheme
 import java.io.File
 
 private const val TAG = "MapsforgeMapView"
@@ -284,7 +284,7 @@ private fun initializeMapView(
         ExternalRenderTheme(themeFile)
     } else {
         // 使用内置主题
-        org.mapsforge.map.rendertheme.InternalRenderTheme.DEFAULT
+        InternalRenderTheme.DEFAULT
     }
     
     // 创建瓦片渲染层
@@ -561,13 +561,8 @@ private fun updateRoute(
     val paintStroke = AndroidGraphicFactory.INSTANCE.createPaint().apply {
         setStyle(Style.STROKE)
         setStrokeWidth(12f)
-        color = AndroidGraphicFactory.INSTANCE.createColor(
-            Color.BLUE.ordinal
-        )
+        color = 0xFF4285F4.toInt() // Google 蓝
     }
-    
-    // 使用自定义颜色
-    paintStroke.color = 0xFF4285F4.toInt() // Google 蓝
     
     // 创建 Polyline
     val polyline = Polyline(paintStroke, AndroidGraphicFactory.INSTANCE)
