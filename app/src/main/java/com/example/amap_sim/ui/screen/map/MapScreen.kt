@@ -94,8 +94,7 @@ fun MapScreen(
                 showLocationButton = true,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(16.dp)
-                    .padding(bottom = 60.dp) // 给底部导航栏留出空间
+                    .padding(end = 16.dp, bottom = 100.dp) // 给底部导航栏留出空间
             )
             
             // 加载指示器

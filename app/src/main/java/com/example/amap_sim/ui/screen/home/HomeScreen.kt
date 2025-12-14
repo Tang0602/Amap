@@ -21,11 +21,9 @@ import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.NearMe
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -120,14 +118,6 @@ fun HomeScreen(
                     .statusBarsPadding()
             )
             
-            // 右侧功能按钮
-            RightControlButtons(
-                onLocationClick = { mapViewModel.moveToCurrentLocation() },
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .padding(end = 16.dp)
-            )
-            
             // 底部快捷功能入口
             BottomQuickActions(
                 onDriveClick = {
@@ -200,35 +190,6 @@ private fun TopSearchArea(
             SearchBarDisplay(
                 onClick = onSearchClick,
                 modifier = Modifier.weight(1f)
-            )
-        }
-    }
-}
-
-/**
- * 右侧控制按钮
- */
-@Composable
-private fun RightControlButtons(
-    onLocationClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        // 定位按钮
-        FloatingActionButton(
-            onClick = onLocationClick,
-            modifier = Modifier.size(48.dp),
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = AmapBlue,
-            shape = CircleShape
-        ) {
-            Icon(
-                imageVector = Icons.Default.MyLocation,
-                contentDescription = "我的位置",
-                modifier = Modifier.size(24.dp)
             )
         }
     }
