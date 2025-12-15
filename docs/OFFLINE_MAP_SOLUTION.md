@@ -80,8 +80,22 @@
   - 支持缩放、平移、旋转等地图操作
   - 支持标记点（Marker）、路线（Polyline）绑制
 
-#### 2. 路由层：GraphHopper
+#### 2. 路由层：BRouter（推荐） / GraphHopper（备选）
 
+> ⚠️ **重要更新**：GraphHopper 从 2.0 版本起不再官方支持 Android 离线路由。
+> 项目已迁移到 **BRouter** 作为默认路由引擎。
+> 详见 [BRouter 迁移方案](./BROUTER_MIGRATION.md)
+
+**BRouter（推荐）**
+- **功能**：离线路径规划
+- **数据格式**：`.rd5` 分片文件
+- **特点**：
+  - 专为移动端设计，内存占用低
+  - 数据格式紧凑，体积小
+  - 被 OsmAnd、Locus Map 等知名应用采用
+  - 高度可定制（通过 profile 脚本）
+
+**GraphHopper（已弃用）**
 - **功能**：离线路径规划
 - **数据格式**：目录结构（nodes, edges, geometry等）
 - **特点**：
@@ -89,6 +103,7 @@
   - 支持多种交通方式（驾车、骑行、步行）
   - 支持途经点设置
   - 返回详细导航指令
+  - ⚠️ 从 2.0 版本起官方不再支持 Android
 
 #### 3. 搜索层：Mapsforge POI + SQLite FTS
 
@@ -108,11 +123,12 @@
 | 文件 | 格式 | 用途 | 预估体积（武汉市） |
 |------|------|------|-------------------|
 | `wuhan.map` | Mapsforge | 地图渲染 | ~30-50 MB |
-| `wuhan-gh/` | GraphHopper目录 | 路由规划 | ~50-80 MB |
+| `brouter/` | BRouter 目录 | 路由规划（推荐） | ~20-40 MB |
+| `wuhan-gh/` | GraphHopper目录 | 路由规划（已弃用） | ~50-80 MB |
 | `wuhan.poi` | Mapsforge POI | POI搜索 | ~10-15 MB |
 | `wuhan_poi.db` | SQLite + FTS5 | 增强搜索 | ~5-10 MB |
 | `theme.xml` | XML | 自定义主题 | ~50 KB |
-| **总计** | | | **~100-160 MB** |
+| **总计** | | | **~70-120 MB**（使用 BRouter） |
 
 ### 数据来源
 
@@ -155,21 +171,25 @@ china-latest.osm.pbf (1GB)
 
 | 文件 | 用途 |
 |------|------|
-| `scripts/prepare_map_data.sh` | 完整数据准备流程（下载、裁剪、生成） |
+| `scripts/prepare_all.sh` | 完整数据准备流程（下载、裁剪、生成） |
+| `scripts/04_generate_brouter.sh` | 生成 BRouter 路由数据（推荐） |
+| `scripts/04_generate_route.sh` | 生成 GraphHopper 路由数据（已弃用） |
 | `scripts/extract_poi.py` | 从 OSM 提取 POI 到 SQLite FTS5 |
 
 **使用方法**：
 
 ```bash
-# 1. 运行数据准备脚本
+# 1. 运行数据准备脚本（默认使用 BRouter）
 cd scripts
-./prepare_map_data.sh
+./prepare_all.sh --copy
 
-# 2. 复制生成的文件到 assets
+# 或者单独生成 BRouter 数据
+./04_generate_brouter.sh -c wuhan
+
+# 2. 手动复制（如果没用 --copy 选项）
 cp map_data/wuhan.map ../app/src/main/assets/map/
-cp map_data/wuhan.poi ../app/src/main/assets/map/
 cp map_data/wuhan_poi.db ../app/src/main/assets/map/
-cp -r map_data/wuhan-gh ../app/src/main/assets/map/
+cp -r map_data/brouter ../app/src/main/assets/map/
 ```
 
 ---
@@ -218,11 +238,15 @@ dependencies {
     implementation("org.mapsforge:mapsforge-map-android:0.21.0")
     implementation("org.mapsforge:mapsforge-poi-android:0.21.0")
     
-    // GraphHopper 路由（排除服务端依赖）
-    implementation("com.graphhopper:graphhopper-core:8.0") {
-        exclude(group = "org.eclipse.jetty")
-        exclude(group = "com.fasterxml.jackson.dataformat", module = "jackson-dataformat-xml")
-    }
+    // BRouter 离线路由（从 libs 目录加载）
+    implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
+    
+    // GraphHopper 路由（已弃用，保留作为备选）
+    // implementation("com.graphhopper:graphhopper-core:8.0") {
+    //     exclude(group = "org.eclipse.jetty")
+    //     exclude(group = "com.fasterxml.jackson.dataformat", module = "jackson-dataformat-xml")
+    // }
+    
     implementation("org.slf4j:slf4j-android:1.7.36")
     
     // Jetpack Compose + MVVM
@@ -666,8 +690,9 @@ GraphHopper 加载大型图时可能占用较多内存：
 
 - [Mapsforge GitHub](https://github.com/mapsforge/mapsforge)
 - [Mapsforge Android 入门](https://github.com/mapsforge/mapsforge/blob/master/docs/Getting-Started-Android-App.md)
-- [GraphHopper 文档](https://www.graphhopper.com/documentation/)
-- [GraphHopper Android Demo](https://github.com/graphhopper/graphhopper/tree/master/android)
+- [BRouter GitHub](https://github.com/abrensch/brouter) ⭐ 推荐
+- [BRouter 数据下载](https://brouter.de/brouter/segments4/)
+- [GraphHopper 文档](https://www.graphhopper.com/documentation/)（已弃用 Android 支持）
 - [OpenStreetMap](https://www.openstreetmap.org/)
 
 ### 数据下载
@@ -683,7 +708,15 @@ GraphHopper 加载大型图时可能占用较多内存：
 
 ---
 
-**文档版本**：2.0  
+**文档版本**：3.0  
 **创建日期**：2024年12月  
 **最后更新**：2024年12月  
-**更新内容**：修复 GraphHopper API、完善代码示例、添加数据管理器、补充 POI 提取脚本
+**更新内容**：
+- v3.0: 迁移到 BRouter 路由引擎（GraphHopper 不再支持 Android）
+- v2.0: 修复 GraphHopper API、完善代码示例、添加数据管理器、补充 POI 提取脚本
+
+---
+
+## 相关文档
+
+- [BRouter 迁移方案](./BROUTER_MIGRATION.md) - 从 GraphHopper 迁移到 BRouter 的详细指南

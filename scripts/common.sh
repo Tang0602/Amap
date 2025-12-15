@@ -29,8 +29,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Mapsforge writer 插件版本
 MAPSFORGE_WRITER_VERSION="0.21.0"
 
-# GraphHopper 版本
+# GraphHopper 版本（保留用于兼容）
 GRAPHHOPPER_VERSION="9.1"
+
+# BRouter 配置
+BROUTER_VERSION="1.7.5"
+BROUTER_SEGMENTS_URL="https://brouter.de/brouter/segments4"
 
 # 下载重试次数
 MAX_RETRIES=3

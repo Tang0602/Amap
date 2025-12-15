@@ -4,10 +4,11 @@ import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.amap_sim.data.local.OfflineRoutingService
+import com.example.amap_sim.data.local.BRouterService
 import com.example.amap_sim.data.local.OfflineSearchService
 import com.example.amap_sim.di.ServiceLocator
 import com.example.amap_sim.domain.model.LatLng
+import com.example.amap_sim.domain.model.RouteResult
 import com.example.amap_sim.ui.navigation.Screen
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,6 +20,8 @@ import kotlinx.coroutines.launch
 
 /**
  * 路线规划页 ViewModel
+ * 
+ * 使用 BRouter 进行离线路由计算
  */
 class RoutePlanningViewModel(
     savedStateHandle: SavedStateHandle
@@ -28,7 +31,8 @@ class RoutePlanningViewModel(
         private const val TAG = "RoutePlanningViewModel"
     }
     
-    private val routingService: OfflineRoutingService = ServiceLocator.routingService
+    // 使用 BRouter 路由服务（替代 GraphHopper）
+    private val routingService: BRouterService = ServiceLocator.brouterService
     private val searchService: OfflineSearchService = ServiceLocator.searchService
     
     private val _uiState = MutableStateFlow(RoutePlanningUiState())

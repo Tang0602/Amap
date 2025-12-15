@@ -39,7 +39,8 @@ class OfflineDataManager(private val context: Context) {
         // 数据文件名
         const val MAP_FILE = "wuhan.map"
         const val POI_DB_FILE = "wuhan_poi.db"
-        const val ROUTE_DIR = "wuhan-gh"
+        const val ROUTE_DIR = "wuhan-gh"         // GraphHopper（已弃用）
+        const val BROUTER_DIR = "brouter"         // BRouter（推荐）
         const val THEME_FILE = "theme.xml"
         
         @Volatile
@@ -129,9 +130,24 @@ class OfflineDataManager(private val context: Context) {
             Log.i(TAG, "主题文件复制完成")
             
             // 复制路由数据目录 (50%-90%)
+            // 优先使用 BRouter，如果不存在则使用 GraphHopper
             onProgress?.invoke(50, "正在复制路由数据...")
-            copyAssetDirectory("$ASSETS_MAP_DIR/$ROUTE_DIR", File(mapDataDir, ROUTE_DIR)) { progress ->
-                onProgress?.invoke(50 + (progress * 0.4).toInt(), "正在复制路由数据...")
+            val hasBRouter = try {
+                context.assets.list("$ASSETS_MAP_DIR/$BROUTER_DIR")?.isNotEmpty() == true
+            } catch (e: Exception) {
+                false
+            }
+            
+            if (hasBRouter) {
+                Log.i(TAG, "使用 BRouter 路由数据")
+                copyAssetDirectory("$ASSETS_MAP_DIR/$BROUTER_DIR", File(mapDataDir, BROUTER_DIR)) { progress ->
+                    onProgress?.invoke(50 + (progress * 0.4).toInt(), "正在复制 BRouter 路由数据...")
+                }
+            } else {
+                Log.i(TAG, "使用 GraphHopper 路由数据")
+                copyAssetDirectory("$ASSETS_MAP_DIR/$ROUTE_DIR", File(mapDataDir, ROUTE_DIR)) { progress ->
+                    onProgress?.invoke(50 + (progress * 0.4).toInt(), "正在复制 GraphHopper 路由数据...")
+                }
             }
             Log.i(TAG, "路由数据复制完成")
             
@@ -209,7 +225,6 @@ class OfflineDataManager(private val context: Context) {
     private fun validateData() {
         val mapFile = getMapFile()
         val poiDbFile = getPoiDbFile()
-        val routeDir = getRouteDirectory()
         val themeFile = getThemeFile()
         
         require(mapFile.exists() && mapFile.length() > 0) {
@@ -220,17 +235,41 @@ class OfflineDataManager(private val context: Context) {
             "POI 数据库无效: ${poiDbFile.absolutePath}"
         }
         
-        require(routeDir.exists() && routeDir.isDirectory) {
-            "路由数据目录无效: ${routeDir.absolutePath}"
-        }
+        // 验证路由数据（BRouter 或 GraphHopper）
+        val brouterDir = getBRouterDirectory()
+        val graphHopperDir = getRouteDirectory()
         
-        // 检查路由数据关键文件
-        val requiredRouteFiles = listOf("nodes", "edges", "geometry", "properties")
-        for (fileName in requiredRouteFiles) {
-            val file = File(routeDir, fileName)
-            require(file.exists()) {
-                "路由数据文件缺失: $fileName"
+        if (brouterDir.exists() && brouterDir.isDirectory) {
+            // 验证 BRouter 数据
+            val segmentsDir = File(brouterDir, "segments")
+            val profilesDir = File(brouterDir, "profiles")
+            
+            require(segmentsDir.exists() && segmentsDir.isDirectory) {
+                "BRouter segments 目录无效"
             }
+            
+            val rd5Files = segmentsDir.listFiles { f -> f.extension == "rd5" }
+            require(!rd5Files.isNullOrEmpty()) {
+                "BRouter segments 目录中没有 rd5 文件"
+            }
+            
+            require(profilesDir.exists() && profilesDir.isDirectory) {
+                "BRouter profiles 目录无效"
+            }
+            
+            Log.i(TAG, "BRouter 数据验证通过: ${rd5Files.size} 个分片")
+        } else if (graphHopperDir.exists() && graphHopperDir.isDirectory) {
+            // 验证 GraphHopper 数据
+            val requiredRouteFiles = listOf("nodes", "edges", "geometry", "properties")
+            for (fileName in requiredRouteFiles) {
+                val file = File(graphHopperDir, fileName)
+                require(file.exists()) {
+                    "GraphHopper 路由数据文件缺失: $fileName"
+                }
+            }
+            Log.i(TAG, "GraphHopper 数据验证通过")
+        } else {
+            throw IllegalStateException("未找到路由数据（BRouter 或 GraphHopper）")
         }
         
         require(themeFile.exists()) {
@@ -253,9 +292,36 @@ class OfflineDataManager(private val context: Context) {
     fun getPoiDbFile(): File = File(mapDataDir, POI_DB_FILE)
     
     /**
-     * 获取 GraphHopper 路由数据目录
+     * 获取 GraphHopper 路由数据目录（已弃用）
+     * @deprecated 请使用 getBRouterDirectory()
      */
+    @Deprecated("请使用 getBRouterDirectory()", ReplaceWith("getBRouterDirectory()"))
     fun getRouteDirectory(): File = File(mapDataDir, ROUTE_DIR)
+    
+    /**
+     * 获取 BRouter 数据目录
+     */
+    fun getBRouterDirectory(): File = File(mapDataDir, BROUTER_DIR)
+    
+    /**
+     * 获取 BRouter segments 目录
+     */
+    fun getBRouterSegmentsDirectory(): File = File(getBRouterDirectory(), "segments")
+    
+    /**
+     * 获取 BRouter profiles 目录
+     */
+    fun getBRouterProfilesDirectory(): File = File(getBRouterDirectory(), "profiles")
+    
+    /**
+     * 检查是否使用 BRouter
+     */
+    fun isBRouterAvailable(): Boolean {
+        val brouterDir = getBRouterDirectory()
+        val segmentsDir = File(brouterDir, "segments")
+        return segmentsDir.exists() && 
+               segmentsDir.listFiles { f -> f.extension == "rd5" }?.isNotEmpty() == true
+    }
     
     /**
      * 获取地图主题文件
@@ -271,10 +337,13 @@ class OfflineDataManager(private val context: Context) {
      * 检查数据是否已初始化
      */
     fun isInitialized(): Boolean {
-        return prefs.getBoolean(KEY_INIT_COMPLETE, false) &&
-               getMapFile().exists() &&
-               getPoiDbFile().exists() &&
-               getRouteDirectory().exists()
+        if (!prefs.getBoolean(KEY_INIT_COMPLETE, false)) return false
+        if (!getMapFile().exists()) return false
+        if (!getPoiDbFile().exists()) return false
+        
+        // 检查路由数据（BRouter 或 GraphHopper）
+        @Suppress("DEPRECATION")
+        return isBRouterAvailable() || getRouteDirectory().exists()
     }
     
     /**

@@ -90,11 +90,19 @@ dependencies {
     implementation(libs.mapsforge.themes)
     implementation(libs.mapsforge.poi.android)
 
-    // GraphHopper 离线路由（排除服务端依赖）
-    implementation(libs.graphhopper.core) {
-        exclude(group = "org.eclipse.jetty")
-        exclude(group = "com.fasterxml.jackson.dataformat", module = "jackson-dataformat-xml")
-    }
+    // BRouter 离线路由（从 libs 目录加载）
+    // 需要先编译 BRouter 并将 JAR 放入 app/libs/ 目录
+    // 或使用 JitPack: implementation("com.github.abrensch:brouter:1.7.5")
+    implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
+    
+    // GraphHopper 离线路由（已弃用，保留作为备选）
+    // 如需使用 GraphHopper，取消下面的注释并注释掉上面的 BRouter
+    // implementation(libs.graphhopper.core) {
+    //     exclude(group = "org.eclipse.jetty")
+    //     exclude(group = "com.fasterxml.jackson.dataformat", module = "jackson-dataformat-xml")
+    // }
+    
+    // SLF4J 日志（BRouter/GraphHopper 都需要）
     implementation(libs.slf4j.android)
 
     // 测试

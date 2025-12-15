@@ -42,8 +42,12 @@ usage() {
   1. 下载 OSM 数据    (01_download_osm.sh)
   2. 裁剪区域数据     (02_extract_region.sh)
   3. 生成地图文件     (03_generate_map.sh)    ┐
-  4. 生成路由数据     (04_generate_route.sh)  ├─ 可并行
+  4. 生成路由数据     (04_generate_brouter.sh) ├─ 可并行
   5. 生成 POI 数据库  (05_generate_poi.sh)    ┘
+
+路由引擎选择:
+  --brouter           使用 BRouter（默认，推荐移动端）
+  --graphhopper       使用 GraphHopper（需要更多内存）
 
 单独执行某一步:
   ./01_download_osm.sh
@@ -89,7 +93,13 @@ copy_to_android_project() {
         ((copied++))
     fi
     
-    if [ -d "$OUTPUT_DIR/${CITY_NAME}-gh" ]; then
+    # 复制 BRouter 数据（优先）
+    if [ -d "$OUTPUT_DIR/brouter" ]; then
+        cp -r "$OUTPUT_DIR/brouter" "$android_assets_dir/"
+        log_success "已复制 brouter/"
+        ((copied++))
+    # 或者复制 GraphHopper 数据
+    elif [ -d "$OUTPUT_DIR/${CITY_NAME}-gh" ]; then
         cp -r "$OUTPUT_DIR/${CITY_NAME}-gh" "$android_assets_dir/"
         log_success "已复制 ${CITY_NAME}-gh/"
         ((copied++))
@@ -146,6 +156,7 @@ PARALLEL=false
 FORCE=false
 DO_COPY=false
 DO_CLEAN=false
+USE_BROUTER=true  # 默认使用 BRouter
 
 # 解析参数
 while [[ $# -gt 0 ]]; do
@@ -180,6 +191,14 @@ while [[ $# -gt 0 ]]; do
             ;;
         --clean)
             DO_CLEAN=true
+            shift
+            ;;
+        --brouter)
+            USE_BROUTER=true
+            shift
+            ;;
+        --graphhopper)
+            USE_BROUTER=false
             shift
             ;;
         -h|--help)
@@ -254,7 +273,11 @@ main() {
         "$SCRIPT_DIR/03_generate_map.sh" $common_args -b "$BBOX" &
         local pid_map=$!
         
-        "$SCRIPT_DIR/04_generate_route.sh" $common_args &
+        if [ "$USE_BROUTER" = true ]; then
+            "$SCRIPT_DIR/04_generate_brouter.sh" $common_args -b "$BBOX" &
+        else
+            "$SCRIPT_DIR/04_generate_route.sh" $common_args &
+        fi
         local pid_route=$!
         
         "$SCRIPT_DIR/05_generate_poi.sh" $common_args &
@@ -277,8 +300,13 @@ main() {
         "$SCRIPT_DIR/03_generate_map.sh" $common_args -b "$BBOX"
         
         echo ""
-        log_step "步骤 4/5: 生成路由数据"
-        "$SCRIPT_DIR/04_generate_route.sh" $common_args
+        if [ "$USE_BROUTER" = true ]; then
+            log_step "步骤 4/5: 生成 BRouter 路由数据"
+            "$SCRIPT_DIR/04_generate_brouter.sh" $common_args -b "$BBOX"
+        else
+            log_step "步骤 4/5: 生成 GraphHopper 路由数据"
+            "$SCRIPT_DIR/04_generate_route.sh" $common_args
+        fi
         
         echo ""
         log_step "步骤 5/5: 生成 POI 数据库"
