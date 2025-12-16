@@ -5,6 +5,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -22,6 +23,7 @@ import androidx.compose.material.icons.filled.Navigation
 import com.example.amap_sim.ui.screen.common.UnderConstructionScreen
 import com.example.amap_sim.ui.screen.detail.PoiDetailScreen
 import com.example.amap_sim.ui.screen.home.HomeScreen
+import com.example.amap_sim.ui.screen.navigation.NavigationScreen
 import com.example.amap_sim.ui.screen.route.RoutePlanningScreen
 import com.example.amap_sim.ui.screen.search.SearchScreen
 import com.example.amap_sim.ui.screen.splash.SplashScreen
@@ -160,14 +162,45 @@ fun AmapNavGraph(
             route = Screen.Navigation.route,
             arguments = listOf(
                 navArgument(Screen.ARG_ROUTE_ID) { type = NavType.StringType }
-            )
+            ),
+            enterTransition = {
+                slideIntoContainer(
+                    towards = AnimatedContentTransitionScope.SlideDirection.Up,
+                    animationSpec = tween(400)
+                )
+            },
+            exitTransition = {
+                slideOutOfContainer(
+                    towards = AnimatedContentTransitionScope.SlideDirection.Down,
+                    animationSpec = tween(400)
+                )
+            }
         ) { backStackEntry ->
-            UnderConstructionScreen(
-                title = "导航",
-                description = "实时导航功能正在开发中，即将支持语音导航、路况提醒等功能！",
-                icon = Icons.Default.Navigation,
-                onNavigateBack = { navController.popBackStack() }
-            )
+            // 从 NavigationStateHolder 获取路线
+            val routeResult = remember { NavigationStateHolder.consumeRouteForNavigation() }
+            
+            if (routeResult != null) {
+                NavigationScreen(
+                    routeResult = routeResult,
+                    onNavigateBack = { 
+                        navController.popBackStack() 
+                    },
+                    onNavigationFinished = {
+                        // 导航结束，返回到首页
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.Home.route) { inclusive = true }
+                        }
+                    }
+                )
+            } else {
+                // 如果没有路线数据，显示错误或返回
+                UnderConstructionScreen(
+                    title = "导航",
+                    description = "未找到路线数据，请先进行路线规划",
+                    icon = Icons.Default.Navigation,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
         }
         
         // POI 详情页
@@ -310,8 +343,10 @@ fun AmapNavGraph(
                     navController.navigate(Screen.Search.route)
                 },
                 onStartNavigation = { routeResult ->
-                    // TODO: 跳转到导航页
-                    navController.navigate(Screen.Navigation.createRoute("temp_route_id"))
+                    // 将路线结果存储到 NavigationStateHolder
+                    NavigationStateHolder.setRouteForNavigation(routeResult)
+                    // 跳转到导航页
+                    navController.navigate(Screen.Navigation.createRoute("route_${System.currentTimeMillis()}"))
                 }
             )
         }
