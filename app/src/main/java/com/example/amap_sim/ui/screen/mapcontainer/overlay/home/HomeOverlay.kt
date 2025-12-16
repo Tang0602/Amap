@@ -15,7 +15,6 @@ import androidx.compose.material.icons.filled.DirectionsBike
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.NearMe
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -33,7 +32,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.amap_sim.ui.components.SearchBarDisplay
 import com.example.amap_sim.ui.screen.mapcontainer.MapStateController
-import com.example.amap_sim.ui.theme.AmapBlue
 import com.example.amap_sim.ui.theme.AmapSimTheme
 
 /**
@@ -47,7 +45,6 @@ import com.example.amap_sim.ui.theme.AmapSimTheme
 fun HomeOverlay(
     mapController: MapStateController,
     onNavigateToSearch: () -> Unit = {},
-    onNavigateToRoutePlanning: () -> Unit = {},
     onNavigateToDrive: () -> Unit = {},
     onNavigateToBike: () -> Unit = {},
     onNavigateToWalk: () -> Unit = {},
@@ -69,7 +66,6 @@ fun HomeOverlay(
             onDriveClick = onNavigateToDrive,
             onBikeClick = onNavigateToBike,
             onWalkClick = onNavigateToWalk,
-            onRouteClick = onNavigateToRoutePlanning,
             onMoreClick = onNavigateToMore,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -107,7 +103,6 @@ private fun BottomQuickActions(
     onDriveClick: () -> Unit,
     onBikeClick: () -> Unit,
     onWalkClick: () -> Unit,
-    onRouteClick: () -> Unit,
     onMoreClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -145,13 +140,6 @@ private fun BottomQuickActions(
                 icon = Icons.Default.DirectionsWalk,
                 label = "步行",
                 onClick = onWalkClick
-            )
-            
-            QuickActionItem(
-                icon = Icons.Default.NearMe,
-                label = "路线",
-                onClick = onRouteClick,
-                iconTint = AmapBlue
             )
             
             QuickActionItem(
@@ -208,7 +196,6 @@ private fun BottomQuickActionsPreview() {
             onDriveClick = {},
             onBikeClick = {},
             onWalkClick = {},
-            onRouteClick = {},
             onMoreClick = {}
         )
     }

@@ -10,11 +10,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.GpsFixed
+import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -22,6 +24,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.amap_sim.ui.theme.AmapSimTheme
 
 /**
@@ -30,12 +33,14 @@ import com.example.amap_sim.ui.theme.AmapSimTheme
  * 包含：
  * - 放大/缩小按钮
  * - 定位按钮
+ * - 路线按钮
  */
 @Composable
 fun MapControls(
     onZoomIn: () -> Unit,
     onZoomOut: () -> Unit,
     onLocate: () -> Unit,
+    onRoute: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -108,6 +113,36 @@ fun MapControls(
                 )
             }
         }
+        
+        // 路线按钮
+        Surface(
+            modifier = Modifier
+                .size(44.dp)
+                .shadow(4.dp, RoundedCornerShape(8.dp)),
+            shape = RoundedCornerShape(8.dp),
+            color = Color.White,
+            onClick = onRoute
+        ) {
+            Column(
+                modifier = Modifier
+                    .size(44.dp)
+                    .padding(vertical = 4.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Route,
+                    contentDescription = "路线",
+                    tint = Color(0xFF666666),
+                )
+                Text(
+                    text = "路线",
+                    fontSize = 10.sp,
+                    color = Color(0xFF666666),
+                    lineHeight = 10.sp
+                )
+            }
+        }
     }
 }
 
@@ -118,7 +153,8 @@ private fun MapControlsPreview() {
         MapControls(
             onZoomIn = {},
             onZoomOut = {},
-            onLocate = {}
+            onLocate = {},
+            onRoute = {}
         )
     }
 }

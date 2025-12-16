@@ -155,7 +155,6 @@ fun MapContainerScreen(
                         HomeOverlay(
                             mapController = viewModel,
                             onNavigateToSearch = { viewModel.openSearch() },
-                            onNavigateToRoutePlanning = { viewModel.openRoutePlanning() },
                             onNavigateToDrive = onNavigateToDrive,
                             onNavigateToBike = onNavigateToBike,
                             onNavigateToWalk = onNavigateToWalk,
@@ -211,7 +210,8 @@ fun MapContainerScreen(
                 MapControls(
                     onZoomIn = { viewModel.zoomIn() },
                     onZoomOut = { viewModel.zoomOut() },
-                    onLocate = { viewModel.moveToCurrentLocation() }
+                    onLocate = { viewModel.moveToCurrentLocation() },
+                    onRoute = { viewModel.openRoutePlanning() }
                 )
             }
         }
