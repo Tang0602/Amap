@@ -68,6 +68,8 @@ fun MapScreen(
                 zoomLevel = uiState.zoomLevel,
                 markers = uiState.markers,
                 routeResult = uiState.routeResult,
+                currentLocation = uiState.currentLocation,
+                showCurrentLocation = uiState.showCurrentLocation,
                 commands = viewModel.mapCommands,
                 onMapReady = {
                     viewModel.onMapReady()

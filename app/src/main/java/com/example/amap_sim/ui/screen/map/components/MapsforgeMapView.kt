@@ -57,6 +57,8 @@ private const val TAG = "MapsforgeMapView"
  * @param zoomLevel 缩放级别 (0-22)
  * @param markers 标记点列表
  * @param routeResult 路线结果（用于绘制路线）
+ * @param currentLocation 当前定位点
+ * @param showCurrentLocation 是否显示当前定位点标记
  * @param commands 命令流 - 用于外部控制地图
  * @param onMapReady 地图准备就绪回调
  * @param onMapClick 地图点击回调
@@ -72,6 +74,8 @@ fun MapsforgeMapView(
     zoomLevel: Int = 14,
     markers: List<MarkerData> = emptyList(),
     routeResult: RouteResult? = null,
+    currentLocation: LatLng? = null,
+    showCurrentLocation: Boolean = true,
     commands: Flow<MapCommand> = emptyFlow(),
     onMapReady: () -> Unit = {},
     onMapClick: (LatLng) -> Unit = {},
@@ -208,6 +212,13 @@ fun MapsforgeMapView(
         }
     }
     
+    // 处理当前定位点变化
+    LaunchedEffect(currentLocation, showCurrentLocation, mapViewState) {
+        mapViewState?.let { state ->
+            updateCurrentLocationMarker(mapView, state, currentLocation, showCurrentLocation)
+        }
+    }
+    
     // 处理路线变化
     LaunchedEffect(routeResult, mapViewState) {
         mapViewState?.let { state ->
@@ -242,7 +253,8 @@ private class MapViewState(
     val mapDataStore: MapDataStore,
     val markerLayer: MutableMap<String, Marker> = mutableMapOf(),
     val markerDataMap: MutableMap<String, MarkerData> = mutableMapOf(),
-    var routePolyline: Polyline? = null
+    var routePolyline: Polyline? = null,
+    var currentLocationMarker: Marker? = null
 ) {
     fun destroy() {
         try {
@@ -577,6 +589,104 @@ private fun updateRoute(
     state.routePolyline = polyline
     
     mapView.layerManager.redrawLayers()
+}
+
+/**
+ * 更新当前定位点标记
+ */
+private fun updateCurrentLocationMarker(
+    mapView: MapView,
+    state: MapViewState,
+    currentLocation: LatLng?,
+    showCurrentLocation: Boolean
+) {
+    // 移除旧的当前位置标记
+    state.currentLocationMarker?.let { marker ->
+        mapView.layerManager.layers.remove(marker)
+    }
+    state.currentLocationMarker = null
+    
+    // 如果不显示或没有位置，直接返回
+    if (!showCurrentLocation || currentLocation == null) {
+        mapView.layerManager.redrawLayers()
+        return
+    }
+    
+    // 创建当前位置标记 Drawable
+    val drawable = createCurrentLocationDrawable()
+    val bitmap = AndroidGraphicFactory.convertToBitmap(drawable)
+    
+    // 创建标记（锚点在中心）
+    val marker = Marker(
+        currentLocation.toMapsforgeLatLong(),
+        bitmap,
+        bitmap.width / 2,
+        bitmap.height / 2
+    )
+    
+    // 添加到地图
+    mapView.layerManager.layers.add(marker)
+    state.currentLocationMarker = marker
+    
+    mapView.layerManager.redrawLayers()
+}
+
+/**
+ * 创建当前定位点 Drawable（高德地图风格蓝色圆点）
+ */
+private fun createCurrentLocationDrawable(): android.graphics.drawable.Drawable {
+    val size = 72
+    val bitmap = android.graphics.Bitmap.createBitmap(
+        size, size,
+        android.graphics.Bitmap.Config.ARGB_8888
+    )
+    val canvas = android.graphics.Canvas(bitmap)
+    val centerX = size / 2f
+    val centerY = size / 2f
+    
+    // 高德蓝色 #1E90FF (道奇蓝)
+    val amapBlue = android.graphics.Color.rgb(30, 144, 255)
+    
+    // 1. 绘制精度圈（高德风格：浅蓝色半透明填充）
+    val accuracyRadius = size / 2f - 4
+    val accuracyPaint = android.graphics.Paint().apply {
+        isAntiAlias = true
+        color = android.graphics.Color.argb(35, 30, 144, 255)
+        style = android.graphics.Paint.Style.FILL
+    }
+    canvas.drawCircle(centerX, centerY, accuracyRadius, accuracyPaint)
+    
+    // 2. 绘制精度圈边框（高德风格：细蓝色边框）
+    val accuracyBorderPaint = android.graphics.Paint().apply {
+        isAntiAlias = true
+        color = android.graphics.Color.argb(100, 30, 144, 255)
+        style = android.graphics.Paint.Style.STROKE
+        strokeWidth = 1f
+    }
+    canvas.drawCircle(centerX, centerY, accuracyRadius, accuracyBorderPaint)
+    
+    // 3. 绘制白色底圈（带阴影）
+    val dotRadius = 10f
+    val whiteBgPaint = android.graphics.Paint().apply {
+        isAntiAlias = true
+        color = android.graphics.Color.WHITE
+        style = android.graphics.Paint.Style.FILL
+        setShadowLayer(3f, 0f, 1.5f, android.graphics.Color.argb(80, 0, 0, 0))
+    }
+    canvas.drawCircle(centerX, centerY, dotRadius + 4f, whiteBgPaint)
+    
+    // 4. 绘制蓝色实心圆点（高德风格：纯净的蓝色圆点）
+    val dotPaint = android.graphics.Paint().apply {
+        isAntiAlias = true
+        color = amapBlue
+        style = android.graphics.Paint.Style.FILL
+    }
+    canvas.drawCircle(centerX, centerY, dotRadius, dotPaint)
+    
+    return android.graphics.drawable.BitmapDrawable(
+        android.content.res.Resources.getSystem(),
+        bitmap
+    )
 }
 
 /**

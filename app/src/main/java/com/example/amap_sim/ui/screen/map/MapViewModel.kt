@@ -34,7 +34,14 @@ class MapViewModel : ViewModel() {
      * 地图准备就绪
      */
     fun onMapReady() {
-        _uiState.update { it.copy(isMapReady = true) }
+        _uiState.update { 
+            it.copy(
+                isMapReady = true,
+                // 地图就绪后，如果还没有当前位置，设置默认位置（武汉市中心）
+                currentLocation = it.currentLocation ?: LatLng.WUHAN_CENTER,
+                showCurrentLocation = true
+            ) 
+        }
     }
     
     /**
@@ -131,7 +138,19 @@ class MapViewModel : ViewModel() {
      */
     fun setCurrentLocation(location: LatLng) {
         _uiState.update { 
-            it.copy(currentLocation = location) 
+            it.copy(
+                currentLocation = location,
+                showCurrentLocation = true
+            ) 
+        }
+    }
+    
+    /**
+     * 设置是否显示当前位置标记
+     */
+    fun setShowCurrentLocation(show: Boolean) {
+        _uiState.update { 
+            it.copy(showCurrentLocation = show) 
         }
     }
     
