@@ -28,7 +28,9 @@ class OfflineDataManager(private val context: Context) {
         private const val TAG = "OfflineDataManager"
         
         // 数据版本号（当 assets 中的数据更新时，增加此版本号）
-        private const val DATA_VERSION = 1
+        // v2: BRouter 官方 profiles + lookups.dat
+        // v3: 修复 BRouter segment 文件名（E110_N30 -> W70_S60）
+        private const val DATA_VERSION = 3
         private const val PREFS_NAME = "offline_data_prefs"
         private const val KEY_DATA_VERSION = "data_version"
         private const val KEY_INIT_COMPLETE = "init_complete"
@@ -257,7 +259,18 @@ class OfflineDataManager(private val context: Context) {
                 "BRouter profiles 目录无效"
             }
             
-            Log.i(TAG, "BRouter 数据验证通过: ${rd5Files.size} 个分片")
+            // 验证 lookups.dat（BRouter profiles 必需文件）
+            val lookupsFile = File(profilesDir, "lookups.dat")
+            require(lookupsFile.exists() && lookupsFile.length() > 0) {
+                "BRouter lookups.dat 文件缺失（profiles 必需文件）"
+            }
+            
+            val brfFiles = profilesDir.listFiles { f -> f.extension == "brf" }
+            require(!brfFiles.isNullOrEmpty()) {
+                "BRouter profiles 目录中没有 brf 文件"
+            }
+            
+            Log.i(TAG, "BRouter 数据验证通过: ${rd5Files.size} 个分片, ${brfFiles.size} 个 profiles")
         } else if (graphHopperDir.exists() && graphHopperDir.isDirectory) {
             // 验证 GraphHopper 数据
             val requiredRouteFiles = listOf("nodes", "edges", "geometry", "properties")

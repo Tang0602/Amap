@@ -1,6 +1,10 @@
 package com.example.amap_sim.data.local
 
 import android.util.Log
+import btools.router.OsmNodeNamed
+import btools.router.OsmTrack
+import btools.router.RoutingContext
+import btools.router.RoutingEngine
 import com.example.amap_sim.domain.model.InstructionSign
 import com.example.amap_sim.domain.model.LatLng
 import com.example.amap_sim.domain.model.RouteInstruction
@@ -27,18 +31,6 @@ import java.io.File
  * - 数据格式紧凑（rd5 格式）
  * - 被 OsmAnd、Locus Map 等知名应用采用
  * - 高度可定制（通过 profile 脚本）
- * 
- * 数据结构：
- * ```
- * brouter/
- * ├── segments/     # rd5 数据文件
- * │   ├── E110_N25.rd5
- * │   └── E110_N30.rd5
- * └── profiles/     # 路由配置文件
- *     ├── car-fast.brf
- *     ├── trekking.brf
- *     └── shortest.brf
- * ```
  */
 class BRouterService(
     private val dataManager: OfflineDataManager
@@ -46,10 +38,10 @@ class BRouterService(
     companion object {
         private const val TAG = "BRouterService"
         
-        // BRouter profile 名称
-        const val PROFILE_CAR = "car-fast"
-        const val PROFILE_BIKE = "trekking"
-        const val PROFILE_FOOT = "shortest"
+        // BRouter profile 名称（使用官方 profile）
+        const val PROFILE_CAR = "car-vario"      // 官方驾车配置
+        const val PROFILE_BIKE = "trekking"      // 官方骑行配置
+        const val PROFILE_FOOT = "shortest"      // 官方步行配置
         
         // 兼容旧接口的 profile 名称
         const val PROFILE_CAR_LEGACY = "car"
@@ -62,14 +54,8 @@ class BRouterService(
     private val initMutex = Mutex()
     private var isInitialized = false
     
-    // BRouter 核心引擎（延迟加载）
-    // 注意：需要在编译时添加 BRouter JAR 到 libs 目录
-    // private var routingEngine: RoutingEngine? = null
-    
     /**
      * 初始化路由引擎
-     * 
-     * 必须在使用前调用，建议在 Application 启动时初始化
      */
     suspend fun initialize(): Result<Unit> = withContext(Dispatchers.IO) {
         initMutex.withLock {
@@ -79,13 +65,11 @@ class BRouterService(
             }
             
             try {
-                // 获取 BRouter 数据目录
                 val brouterDir = dataManager.getBRouterDirectory()
                 require(brouterDir.exists() && brouterDir.isDirectory) {
                     "BRouter 数据目录不存在: ${brouterDir.absolutePath}"
                 }
                 
-                // 验证 segments 目录
                 segmentsDir = File(brouterDir, "segments").also { dir ->
                     require(dir.exists() && dir.isDirectory) {
                         "BRouter segments 目录不存在: ${dir.absolutePath}"
@@ -102,7 +86,6 @@ class BRouterService(
                     }
                 }
                 
-                // 验证 profiles 目录
                 profilesDir = File(brouterDir, "profiles").also { dir ->
                     require(dir.exists() && dir.isDirectory) {
                         "BRouter profiles 目录不存在: ${dir.absolutePath}"
@@ -137,11 +120,6 @@ class BRouterService(
     
     /**
      * 计算两点间路径
-     * 
-     * @param start 起点坐标
-     * @param end 终点坐标
-     * @param profile 交通方式：car, bike, foot（会自动映射到 BRouter profile）
-     * @return 路线结果，失败返回错误
      */
     suspend fun calculateRoute(
         start: LatLng,
@@ -153,10 +131,6 @@ class BRouterService(
     
     /**
      * 计算多途经点路径
-     * 
-     * @param points 点列表（至少包含起点和终点）
-     * @param profile 交通方式
-     * @return 路线结果
      */
     suspend fun calculateRouteWithWaypoints(
         points: List<LatLng>,
@@ -174,53 +148,68 @@ class BRouterService(
                 "找不到路由配置文件: ${profileFile.name}"
             }
             
-            // ========================================
-            // BRouter 核心路由计算
-            // ========================================
-            // 注意：以下代码需要在添加 BRouter JAR 后才能编译
-            // 目前提供一个模拟实现用于演示 API
-            
-            /*
             // 创建路由上下文
             val routingContext = RoutingContext().apply {
                 localFunction = profileFile.absolutePath
+                // 强制启用语音提示处理（解决 detourMap 为空时无法生成指令的问题）
+                hasDirectRouting = true
             }
             
             // 创建路由点
-            val waypoints = points.map { point ->
+            val waypoints = points.mapIndexed { index, point ->
+                Log.d(TAG, "路由点[$index]: lat=${point.lat}, lon=${point.lon}")
                 OsmNodeNamed().apply {
-                    name = ""
+                    name = when (index) {
+                        0 -> "from"
+                        points.size - 1 -> "to"
+                        else -> "via$index"
+                    }
                     ilon = (point.lon * 1_000_000).toInt()
                     ilat = (point.lat * 1_000_000).toInt()
+                    Log.d(TAG, "  转换后: ilon=$ilon, ilat=$ilat")
                 }
             }
             
-            // 创建路由引擎并计算
+            Log.d(TAG, "创建路由引擎，segments目录: ${segmentsDir?.absolutePath}")
+            
+            // 列出 segments 目录中的文件
+            segmentsDir?.listFiles()?.forEach { file ->
+                Log.d(TAG, "  segment文件: ${file.name} (${file.length()} bytes)")
+            }
+            
+            // 创建路由引擎
             val engine = RoutingEngine(
-                null,  // 无服务上下文
-                null,  // 无轨迹写入器
-                segmentsDir!!.absolutePath,
-                waypoints,
-                routingContext
+                null,  // outfileBase
+                null,  // logfileBase  
+                segmentsDir,  // segmentDir
+                waypoints,  // waypoints
+                routingContext  // routingContext
             )
             
-            engine.doRun(0L)
+            // 静默模式
+            engine.quite = true
             
+            // 执行路由计算
+            Log.d(TAG, "开始路由计算...")
+            engine.run()
+            
+            // 检查结果
             val track = engine.foundTrack
-            if (track != null) {
-                val result = convertToRouteResult(track, profile)
-                Log.i(TAG, "路由计算成功: ${result.getFormattedDistance()}, ${result.getFormattedTime()}")
-                return@withContext Result.success(result)
-            } else {
-                val errorMsg = engine.errorMessage ?: "路由计算失败：未找到路径"
-                Log.e(TAG, errorMsg)
-                return@withContext Result.failure(RuntimeException(errorMsg))
-            }
-            */
+            val errorMessage = engine.errorMessage
             
-            // 临时实现：直接连线（演示用，需要替换为真实 BRouter 调用）
-            val result = createSimulatedRoute(points, profile)
-            Log.i(TAG, "路由计算成功（模拟）: ${result.getFormattedDistance()}, ${result.getFormattedTime()}")
+            if (errorMessage != null) {
+                Log.e(TAG, "路由计算失败: $errorMessage")
+                return@withContext Result.failure(RuntimeException(errorMessage))
+            }
+            
+            if (track == null || track.nodes.isEmpty()) {
+                Log.e(TAG, "路由计算失败：未找到路径")
+                return@withContext Result.failure(RuntimeException("未找到路径"))
+            }
+            
+            // 转换结果
+            val result = convertToRouteResult(track, profile)
+            Log.i(TAG, "路由计算成功: ${result.getFormattedDistance()}, ${result.getFormattedTime()}, ${result.instructions.size} 条指令")
             
             Result.success(result)
         } catch (e: Exception) {
@@ -230,7 +219,7 @@ class BRouterService(
     }
     
     /**
-     * 映射 profile 名称（兼容旧接口）
+     * 映射 profile 名称
      */
     private fun mapProfile(profile: String): String {
         return when (profile) {
@@ -242,70 +231,285 @@ class BRouterService(
     }
     
     /**
-     * 创建模拟路线（临时实现）
-     * 
-     * 注意：这是在 BRouter JAR 未添加时的临时实现
-     * 实际使用时应替换为真实的 BRouter 路由计算
+     * 将 BRouter 结果转换为领域模型
      */
-    private fun createSimulatedRoute(points: List<LatLng>, profile: String): RouteResult {
-        // 计算直线距离
+    private fun convertToRouteResult(track: OsmTrack, profile: String): RouteResult {
+        // 提取路线点（使用 public getter 方法）
+        val routePoints = track.nodes.map { node ->
+            LatLng(
+                lat = node.iLat / 1_000_000.0,
+                lon = node.iLon / 1_000_000.0
+            )
+        }
+        
+        // 计算总距离和时间
         var totalDistance = 0.0
-        for (i in 0 until points.size - 1) {
-            totalDistance += calculateDistance(points[i], points[i + 1])
+        var totalTime = 0L
+        
+        for (i in 0 until track.nodes.size - 1) {
+            val p1 = track.nodes[i]
+            val p2 = track.nodes[i + 1]
+            totalDistance += calculateDistance(
+                p1.iLat / 1_000_000.0, p1.iLon / 1_000_000.0,
+                p2.iLat / 1_000_000.0, p2.iLon / 1_000_000.0
+            )
         }
         
-        // 根据交通方式估算时间
-        val speed = when (profile) {
-            PROFILE_CAR, PROFILE_CAR_LEGACY -> 40.0  // km/h
-            PROFILE_BIKE, PROFILE_BIKE_LEGACY -> 15.0
-            else -> 5.0  // 步行
+        // 从 track 获取总时间（秒）
+        totalTime = track.totalSeconds.toLong() * 1000
+        
+        // 如果 totalTime 为 0，根据距离和速度估算
+        if (totalTime == 0L) {
+            val speed = when (profile) {
+                PROFILE_CAR, PROFILE_CAR_LEGACY -> 40.0  // km/h
+                PROFILE_BIKE, PROFILE_BIKE_LEGACY -> 15.0
+                else -> 5.0
+            }
+            totalTime = (totalDistance / 1000 / speed * 3600 * 1000).toLong()
         }
-        val time = (totalDistance / 1000 / speed * 3600 * 1000).toLong()
         
-        // 创建导航指令
-        val instructions = mutableListOf<RouteInstruction>()
-        instructions.add(
-            RouteInstruction(
-                text = "出发",
-                distance = 0.0,
-                time = 0L,
-                sign = InstructionSign.DEPART,
-                location = points.first(),
-                streetName = null,
-                turnAngle = null
-            )
-        )
-        
-        instructions.add(
-            RouteInstruction(
-                text = "到达目的地",
-                distance = totalDistance,
-                time = time,
-                sign = InstructionSign.ARRIVE,
-                location = points.last(),
-                streetName = null,
-                turnAngle = null
-            )
-        )
+        // 提取导航指令
+        val instructions = extractInstructions(track, routePoints)
         
         return RouteResult(
             distance = totalDistance,
-            time = time,
-            points = points,
+            time = totalTime,
+            points = routePoints,
             instructions = instructions,
             profile = profile
         )
     }
     
     /**
+     * 从 VoiceHints 提取导航指令
+     */
+    private fun extractInstructions(track: OsmTrack, points: List<LatLng>): List<RouteInstruction> {
+        val instructions = mutableListOf<RouteInstruction>()
+        
+        // 添加出发指令
+        if (points.isNotEmpty()) {
+            instructions.add(
+                RouteInstruction(
+                    text = "出发",
+                    distance = 0.0,
+                    time = 0L,
+                    sign = InstructionSign.DEPART,
+                    location = points.first(),
+                    streetName = null,
+                    turnAngle = null
+                )
+            )
+        }
+        
+        // 从 VoiceHints 提取中间指令
+        try {
+            val voiceHints = track.voiceHints
+            Log.d(TAG, "VoiceHints 对象: $voiceHints")
+            
+            if (voiceHints != null) {
+                // 检查 turnInstructionMode
+                val timField = voiceHints.javaClass.getDeclaredField("turnInstructionMode")
+                timField.isAccessible = true
+                val turnInstructionMode = timField.getInt(voiceHints)
+                Log.d(TAG, "turnInstructionMode = $turnInstructionMode")
+                
+                // 使用反射安全访问 list 字段（因为是 package-private）
+                val listField = voiceHints.javaClass.getDeclaredField("list")
+                listField.isAccessible = true
+                @Suppress("UNCHECKED_CAST")
+                val hintList = listField.get(voiceHints) as? List<btools.router.VoiceHint>
+                
+                if (hintList != null) {
+                    Log.d(TAG, "发现 ${hintList.size} 个语音提示")
+                    
+                    for ((idx, hint) in hintList.withIndex()) {
+                        // 获取 indexInTrack（package-private）
+                        val indexField = hint.javaClass.getDeclaredField("indexInTrack")
+                        indexField.isAccessible = true
+                        val indexInTrack = indexField.getInt(hint)
+                        
+                        // 获取 cmd（package-private）
+                        val cmdField = hint.javaClass.getDeclaredField("cmd")
+                        cmdField.isAccessible = true
+                        val cmd = cmdField.getInt(hint)
+                        
+                        Log.d(TAG, "语音提示[$idx]: cmd=$cmd, indexInTrack=$indexInTrack")
+                        
+                        val index = indexInTrack.coerceIn(0, points.size - 1)
+                        val location = points.getOrElse(index) { points.first() }
+                        
+                        // 跳过终点指令（稍后添加），END = 100
+                        if (cmd == 100) continue
+                        
+                        val (text, sign) = translateVoiceHintByReflection(hint)
+                        
+                        // 获取 distanceToNext
+                        val distField = hint.javaClass.getDeclaredField("distanceToNext")
+                        distField.isAccessible = true
+                        val distanceToNext = distField.getDouble(hint)
+                        
+                        Log.d(TAG, "  指令: $text, 距离: ${distanceToNext}m")
+                        
+                        instructions.add(
+                            RouteInstruction(
+                                text = text,
+                                distance = distanceToNext,
+                                time = (hint.time * 1000).toLong(),
+                                sign = sign,
+                                location = location,
+                                streetName = getStreetNameFromHint(hint),
+                                turnAngle = getAngleFromHint(hint)
+                            )
+                        )
+                    }
+                } else {
+                    Log.w(TAG, "VoiceHints.list 为 null")
+                }
+            } else {
+                Log.w(TAG, "track.voiceHints 为 null - 可能是 detourMap 和 hasDirectRouting 都为 false")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "提取导航指令失败: ${e.message}", e)
+        }
+        
+        // 添加到达指令
+        if (points.isNotEmpty()) {
+            val totalDistance = if (instructions.isNotEmpty()) {
+                instructions.sumOf { it.distance }
+            } else {
+                0.0
+            }
+            
+            instructions.add(
+                RouteInstruction(
+                    text = "到达目的地",
+                    distance = totalDistance,
+                    time = 0L,
+                    sign = InstructionSign.ARRIVE,
+                    location = points.last(),
+                    streetName = null,
+                    turnAngle = null
+                )
+            )
+        }
+        
+        return instructions
+    }
+    
+    /**
+     * 通过反射获取街道名称
+     */
+    private fun getStreetNameFromHint(hint: btools.router.VoiceHint): String? {
+        return try {
+            val goodWayField = hint.javaClass.getDeclaredField("goodWay")
+            goodWayField.isAccessible = true
+            val goodWay = goodWayField.get(hint) ?: return null
+            
+            // MessageData.wayKeyValues 包含道路标签
+            val wayKeyValuesField = goodWay.javaClass.getDeclaredField("wayKeyValues")
+            wayKeyValuesField.isAccessible = true
+            val wayKeyValues = wayKeyValuesField.get(goodWay) as? String
+            
+            // 从标签中提取道路名称
+            wayKeyValues?.let { tags ->
+                // 尝试提取 name 标签
+                val nameMatch = Regex("name=([^\\s]+)").find(tags)
+                nameMatch?.groupValues?.getOrNull(1)
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
+    
+    /**
+     * 通过反射获取转弯角度
+     */
+    private fun getAngleFromHint(hint: btools.router.VoiceHint): Double? {
+        return try {
+            val angleField = hint.javaClass.getDeclaredField("angle")
+            angleField.isAccessible = true
+            val angle = angleField.getFloat(hint)
+            if (angle != Float.MAX_VALUE) angle.toDouble() else null
+        } catch (e: Exception) {
+            null
+        }
+    }
+    
+    /**
+     * 通过反射翻译 BRouter VoiceHint 为中文指令
+     * 
+     * VoiceHint cmd 常量值：
+     * C=1(直行), TL=2(左转), TSLL=3(稍左), TSHL=4(急左),
+     * TR=5(右转), TSLR=6(稍右), TSHR=7(急右),
+     * KL=8(靠左), KR=9(靠右), TLU=10(左掉头), TRU=11(右掉头),
+     * OFFR=12(偏离), RNDB=13(环岛), RNLB=14(左环岛),
+     * TU=15(掉头), BL=16(直线), EL=17(左出), ER=18(右出),
+     * END=100(终点)
+     */
+    private fun translateVoiceHintByReflection(hint: btools.router.VoiceHint): Pair<String, InstructionSign> {
+        // 通过反射获取 cmd
+        val cmd = try {
+            val cmdField = hint.javaClass.getDeclaredField("cmd")
+            cmdField.isAccessible = true
+            cmdField.getInt(hint)
+        } catch (e: Exception) {
+            0
+        }
+        
+        val streetName = getStreetNameFromHint(hint)
+        
+        // VoiceHint 常量值
+        val C = 1; val TL = 2; val TSLL = 3; val TSHL = 4
+        val TR = 5; val TSLR = 6; val TSHR = 7
+        val KL = 8; val KR = 9; val TLU = 10; val TRU = 11
+        val RNDB = 13; val RNLB = 14; val TU = 15
+        val EL = 17; val ER = 18; val END = 100
+        
+        val exitNumber = hint.exitNumber
+        
+        val (action, sign) = when (cmd) {
+            C -> "继续直行" to InstructionSign.CONTINUE
+            TL -> "左转" to InstructionSign.LEFT
+            TSLL -> "稍向左转" to InstructionSign.SLIGHT_LEFT
+            TSHL -> "向左急转" to InstructionSign.SHARP_LEFT
+            TR -> "右转" to InstructionSign.RIGHT
+            TSLR -> "稍向右转" to InstructionSign.SLIGHT_RIGHT
+            TSHR -> "向右急转" to InstructionSign.SHARP_RIGHT
+            KL -> "靠左行驶" to InstructionSign.KEEP_LEFT
+            KR -> "靠右行驶" to InstructionSign.KEEP_RIGHT
+            TLU, TU -> "掉头" to InstructionSign.U_TURN
+            TRU -> "向右掉头" to InstructionSign.U_TURN_RIGHT
+            RNDB -> "进入环岛，第${exitNumber}出口驶出" to InstructionSign.ROUNDABOUT
+            RNLB -> "进入环岛（左转），第${exitNumber}出口驶出" to InstructionSign.ROUNDABOUT
+            EL -> "从左侧驶出" to InstructionSign.KEEP_LEFT
+            ER -> "从右侧驶出" to InstructionSign.KEEP_RIGHT
+            END -> "到达目的地" to InstructionSign.ARRIVE
+            else -> "继续前行" to InstructionSign.UNKNOWN
+        }
+        
+        val text = if (!streetName.isNullOrBlank() && cmd != END) {
+            when (cmd) {
+                C -> "沿${streetName}继续直行"
+                TL, TSLL, TSHL -> "${action}进入${streetName}"
+                TR, TSLR, TSHR -> "${action}进入${streetName}"
+                else -> "${action}，沿${streetName}"
+            }
+        } else {
+            action
+        }
+        
+        return text to sign
+    }
+    
+    /**
      * 计算两点间的直线距离（米）
      */
-    private fun calculateDistance(p1: LatLng, p2: LatLng): Double {
-        val earthRadius = 6371000.0 // 米
-        val dLat = Math.toRadians(p2.lat - p1.lat)
-        val dLon = Math.toRadians(p2.lon - p1.lon)
+    private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+        val earthRadius = 6371000.0
+        val dLat = Math.toRadians(lat2 - lat1)
+        val dLon = Math.toRadians(lon2 - lon1)
         val a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos(Math.toRadians(p1.lat)) * Math.cos(Math.toRadians(p2.lat)) *
+                Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
                 Math.sin(dLon / 2) * Math.sin(dLon / 2)
         val c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
         return earthRadius * c
@@ -348,4 +552,3 @@ class BRouterException(
     message: String,
     cause: Throwable? = null
 ) : Exception(message, cause)
-
