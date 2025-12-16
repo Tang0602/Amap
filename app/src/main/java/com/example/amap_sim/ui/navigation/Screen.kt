@@ -11,8 +11,14 @@ sealed class Screen(val route: String) {
     data object Splash : Screen("splash")
     
     /**
-     * 主页 - 地图 + 搜索入口
+     * 地图容器页 - 承载所有 Overlay（Home、Search、Detail、RoutePlanning）
      */
+    data object MapContainer : Screen("map_container")
+    
+    /**
+     * 主页 - 地图 + 搜索入口（已废弃，使用 MapContainer）
+     */
+    @Deprecated("使用 MapContainer 替代")
     data object Home : Screen("home")
     
     /**

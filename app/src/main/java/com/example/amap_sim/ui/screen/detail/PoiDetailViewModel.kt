@@ -36,10 +36,22 @@ class PoiDetailViewModel(
     val navigationEvent = _navigationEvent.asSharedFlow()
     
     // 从路由参数获取 POI ID
-    private val poiId: String = savedStateHandle.get<String>(Screen.ARG_POI_ID) ?: ""
+    private var poiId: String = savedStateHandle.get<String>(Screen.ARG_POI_ID) ?: ""
     
     init {
-        loadPoiDetail()
+        if (poiId.isNotEmpty()) {
+            loadPoiDetail()
+        }
+    }
+    
+    /**
+     * 通过 ID 加载 POI 详情（供 Overlay 使用）
+     */
+    fun loadPoiById(id: String) {
+        if (id != poiId || _uiState.value.poi == null) {
+            poiId = id
+            loadPoiDetail()
+        }
     }
     
     /**

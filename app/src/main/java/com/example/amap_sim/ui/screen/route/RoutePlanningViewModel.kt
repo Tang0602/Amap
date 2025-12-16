@@ -161,6 +161,17 @@ class RoutePlanningViewModel(
     }
     
     /**
+     * 设置目的地（供 Overlay 使用）
+     */
+    fun setDestination(lat: Double, lon: Double, name: String?) {
+        val location = LocationInput.SpecificLocation(
+            name = name ?: "目的地",
+            coordinates = LatLng(lat, lon)
+        )
+        setEndLocation(location)
+    }
+    
+    /**
      * 更新终点（从搜索页返回后调用）
      */
     fun updateEndLocation(name: String, lat: Double, lon: Double) {
