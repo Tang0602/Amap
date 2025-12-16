@@ -1,15 +1,12 @@
-package com.example.amap_sim.ui.screen.route
+package com.example.amap_sim.ui.screen.mapcontainer.overlay.route
 
 import android.util.Log
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.amap_sim.data.local.BRouterService
 import com.example.amap_sim.data.local.OfflineSearchService
 import com.example.amap_sim.di.ServiceLocator
 import com.example.amap_sim.domain.model.LatLng
-import com.example.amap_sim.domain.model.RouteResult
-import com.example.amap_sim.ui.navigation.Screen
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -19,70 +16,62 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * 路线规划页 ViewModel
+ * 路线规划 Overlay ViewModel
  * 
  * 使用 BRouter 进行离线路由计算
  */
-class RoutePlanningViewModel(
-    savedStateHandle: SavedStateHandle
-) : ViewModel() {
+class RouteViewModel : ViewModel() {
     
     companion object {
-        private const val TAG = "RoutePlanningViewModel"
+        private const val TAG = "RouteViewModel"
     }
     
-    // 使用 BRouter 路由服务（替代 GraphHopper）
+    // 使用 BRouter 路由服务
     private val routingService: BRouterService = ServiceLocator.brouterService
     private val searchService: OfflineSearchService = ServiceLocator.searchService
     
-    private val _uiState = MutableStateFlow(RoutePlanningUiState())
-    val uiState: StateFlow<RoutePlanningUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(RouteUiState())
+    val uiState: StateFlow<RouteUiState> = _uiState.asStateFlow()
     
     // 导航事件
-    private val _navigationEvent = MutableSharedFlow<RoutePlanningNavigationEvent>()
+    private val _navigationEvent = MutableSharedFlow<RouteNavigationEvent>()
     val navigationEvent = _navigationEvent.asSharedFlow()
     
-    // 从路由参数获取目的地坐标
-    private val destLat: Float? = savedStateHandle.get<Float>(Screen.ARG_DEST_LAT)
-    private val destLon: Float? = savedStateHandle.get<Float>(Screen.ARG_DEST_LON)
-    private val destName: String? = savedStateHandle.get<String>(Screen.ARG_DEST_NAME)
-    
-    init {
-        initializeDestination()
-    }
-    
     /**
-     * 初始化目的地（如果从其他页面传入）
+     * 设置目的地（供 Overlay 初始化使用）
      */
-    private fun initializeDestination() {
-        if (destLat != null && destLon != null) {
-            val location = LocationInput.SpecificLocation(
-                name = destName ?: "目的地",
-                coordinates = LatLng(destLat.toDouble(), destLon.toDouble())
-            )
-            _uiState.update { it.copy(endLocation = location) }
-            
-            // 自动计算路线
-            calculateRoute()
+    fun setDestination(lat: Double, lon: Double, name: String?) {
+        val location = LocationInput.SpecificLocation(
+            name = name ?: "目的地",
+            coordinates = LatLng(lat, lon)
+        )
+        _uiState.update { 
+            it.copy(
+                endLocation = location, 
+                routeResult = null,
+                isEndInputFocused = false
+            ) 
         }
+        // 自动计算路线
+        calculateRoute()
     }
     
     /**
      * 处理事件
      */
-    fun onEvent(event: RoutePlanningEvent) {
+    fun onEvent(event: RouteEvent) {
         when (event) {
-            RoutePlanningEvent.NavigateBack -> navigateBack()
-            is RoutePlanningEvent.SelectProfile -> selectProfile(event.profile)
-            RoutePlanningEvent.SwapLocations -> swapLocations()
-            is RoutePlanningEvent.SetStartLocation -> setStartLocation(event.location)
-            is RoutePlanningEvent.SetEndLocation -> setEndLocation(event.location)
-            RoutePlanningEvent.CalculateRoute -> calculateRoute()
-            RoutePlanningEvent.ToggleInstructions -> toggleInstructions()
-            RoutePlanningEvent.StartNavigation -> startNavigation()
-            RoutePlanningEvent.ClickStartInput -> clickStartInput()
-            RoutePlanningEvent.ClickEndInput -> clickEndInput()
-            RoutePlanningEvent.ClearError -> clearError()
+            RouteEvent.NavigateBack -> navigateBack()
+            is RouteEvent.SelectProfile -> selectProfile(event.profile)
+            RouteEvent.SwapLocations -> swapLocations()
+            is RouteEvent.SetStartLocation -> setStartLocation(event.location)
+            is RouteEvent.SetEndLocation -> setEndLocation(event.location)
+            RouteEvent.CalculateRoute -> calculateRoute()
+            RouteEvent.ToggleInstructions -> toggleInstructions()
+            RouteEvent.StartNavigation -> startNavigation()
+            RouteEvent.ClickStartInput -> clickStartInput()
+            RouteEvent.ClickEndInput -> clickEndInput()
+            RouteEvent.ClearError -> clearError()
         }
     }
     
@@ -91,7 +80,7 @@ class RoutePlanningViewModel(
      */
     private fun navigateBack() {
         viewModelScope.launch {
-            _navigationEvent.emit(RoutePlanningNavigationEvent.Back)
+            _navigationEvent.emit(RouteNavigationEvent.Back)
         }
     }
     
@@ -158,17 +147,6 @@ class RoutePlanningViewModel(
         }
         // 自动计算路线
         calculateRoute()
-    }
-    
-    /**
-     * 设置目的地（供 Overlay 使用）
-     */
-    fun setDestination(lat: Double, lon: Double, name: String?) {
-        val location = LocationInput.SpecificLocation(
-            name = name ?: "目的地",
-            coordinates = LatLng(lat, lon)
-        )
-        setEndLocation(location)
     }
     
     /**
@@ -277,7 +255,7 @@ class RoutePlanningViewModel(
     private fun startNavigation() {
         val routeResult = _uiState.value.routeResult ?: return
         viewModelScope.launch {
-            _navigationEvent.emit(RoutePlanningNavigationEvent.StartNavigation(routeResult))
+            _navigationEvent.emit(RouteNavigationEvent.StartNavigation(routeResult))
         }
     }
     
@@ -286,7 +264,7 @@ class RoutePlanningViewModel(
      */
     private fun clickStartInput() {
         viewModelScope.launch {
-            _navigationEvent.emit(RoutePlanningNavigationEvent.SelectStartFromSearch)
+            _navigationEvent.emit(RouteNavigationEvent.SelectStartFromSearch)
         }
     }
     
@@ -295,7 +273,7 @@ class RoutePlanningViewModel(
      */
     private fun clickEndInput() {
         viewModelScope.launch {
-            _navigationEvent.emit(RoutePlanningNavigationEvent.SelectEndFromSearch)
+            _navigationEvent.emit(RouteNavigationEvent.SelectEndFromSearch)
         }
     }
     
@@ -306,3 +284,4 @@ class RoutePlanningViewModel(
         _uiState.update { it.copy(error = null) }
     }
 }
+

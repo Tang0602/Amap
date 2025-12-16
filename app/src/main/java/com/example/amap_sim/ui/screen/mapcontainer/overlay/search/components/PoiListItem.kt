@@ -1,4 +1,4 @@
-package com.example.amap_sim.ui.screen.search.components
+package com.example.amap_sim.ui.screen.mapcontainer.overlay.search.components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -263,3 +263,4 @@ private fun PoiCardPreview() {
         }
     }
 }
+

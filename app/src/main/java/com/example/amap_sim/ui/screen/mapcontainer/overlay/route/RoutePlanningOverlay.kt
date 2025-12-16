@@ -57,12 +57,6 @@ import com.example.amap_sim.domain.model.MarkerData
 import com.example.amap_sim.domain.model.MarkerType
 import com.example.amap_sim.domain.model.RouteResult
 import com.example.amap_sim.ui.screen.mapcontainer.MapStateController
-import com.example.amap_sim.ui.screen.route.LocationInput
-import com.example.amap_sim.ui.screen.route.RoutePlanningEvent
-import com.example.amap_sim.ui.screen.route.RoutePlanningNavigationEvent
-import com.example.amap_sim.ui.screen.route.RoutePlanningUiState
-import com.example.amap_sim.ui.screen.route.RoutePlanningViewModel
-import com.example.amap_sim.ui.screen.route.TravelProfile
 import com.example.amap_sim.ui.theme.AmapBlue
 import com.example.amap_sim.ui.theme.AmapGreen
 import com.example.amap_sim.ui.theme.Gray400
@@ -85,7 +79,7 @@ fun RoutePlanningOverlay(
     onNavigateBack: () -> Unit,
     onNavigateToSearch: () -> Unit,
     onStartNavigation: (RouteResult) -> Unit,
-    viewModel: RoutePlanningViewModel = viewModel()
+    viewModel: RouteViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     
@@ -133,14 +127,14 @@ fun RoutePlanningOverlay(
     LaunchedEffect(Unit) {
         viewModel.navigationEvent.collect { event ->
             when (event) {
-                RoutePlanningNavigationEvent.Back -> {
+                RouteNavigationEvent.Back -> {
                     mapController.clearMarkers()
                     mapController.clearRoute()
                     onNavigateBack()
                 }
-                RoutePlanningNavigationEvent.SelectStartFromSearch -> onNavigateToSearch()
-                RoutePlanningNavigationEvent.SelectEndFromSearch -> onNavigateToSearch()
-                is RoutePlanningNavigationEvent.StartNavigation -> onStartNavigation(event.routeResult)
+                RouteNavigationEvent.SelectStartFromSearch -> onNavigateToSearch()
+                RouteNavigationEvent.SelectEndFromSearch -> onNavigateToSearch()
+                is RouteNavigationEvent.StartNavigation -> onStartNavigation(event.routeResult)
             }
         }
     }
@@ -158,8 +152,8 @@ fun RoutePlanningOverlay(
 
 @Composable
 private fun RoutePlanningOverlayContent(
-    uiState: RoutePlanningUiState,
-    onEvent: (RoutePlanningEvent) -> Unit,
+    uiState: RouteUiState,
+    onEvent: (RouteEvent) -> Unit,
     onBack: () -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
@@ -178,7 +172,7 @@ private fun RoutePlanningOverlayContent(
             BottomResultPanel(
                 routeResult = uiState.routeResult,
                 profile = uiState.selectedProfile,
-                onStartNavigation = { onEvent(RoutePlanningEvent.StartNavigation) },
+                onStartNavigation = { onEvent(RouteEvent.StartNavigation) },
                 modifier = Modifier.align(Alignment.BottomCenter)
             )
         }
@@ -203,8 +197,8 @@ private fun RoutePlanningOverlayContent(
  */
 @Composable
 private fun TopPanel(
-    uiState: RoutePlanningUiState,
-    onEvent: (RoutePlanningEvent) -> Unit,
+    uiState: RouteUiState,
+    onEvent: (RouteEvent) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -243,15 +237,15 @@ private fun TopPanel(
             LocationInputCard(
                 startLocation = uiState.startLocation,
                 endLocation = uiState.endLocation,
-                onStartClick = { onEvent(RoutePlanningEvent.ClickStartInput) },
-                onEndClick = { onEvent(RoutePlanningEvent.ClickEndInput) },
-                onSwapClick = { onEvent(RoutePlanningEvent.SwapLocations) }
+                onStartClick = { onEvent(RouteEvent.ClickStartInput) },
+                onEndClick = { onEvent(RouteEvent.ClickEndInput) },
+                onSwapClick = { onEvent(RouteEvent.SwapLocations) }
             )
             
             // 交通方式选择
             TravelModeSelector(
                 selectedProfile = uiState.selectedProfile,
-                onProfileSelect = { onEvent(RoutePlanningEvent.SelectProfile(it)) }
+                onProfileSelect = { onEvent(RouteEvent.SelectProfile(it)) }
             )
         }
     }

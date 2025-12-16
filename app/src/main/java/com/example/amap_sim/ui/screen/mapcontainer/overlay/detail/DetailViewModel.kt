@@ -1,12 +1,10 @@
-package com.example.amap_sim.ui.screen.detail
+package com.example.amap_sim.ui.screen.mapcontainer.overlay.detail
 
 import android.util.Log
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.amap_sim.data.local.OfflineSearchService
 import com.example.amap_sim.di.ServiceLocator
-import com.example.amap_sim.ui.navigation.Screen
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,40 +14,32 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * POI 详情页 ViewModel
+ * POI 详情 Overlay ViewModel
  */
-class PoiDetailViewModel(
-    savedStateHandle: SavedStateHandle
-) : ViewModel() {
+class DetailViewModel : ViewModel() {
     
     companion object {
-        private const val TAG = "PoiDetailViewModel"
+        private const val TAG = "DetailViewModel"
     }
     
     private val searchService: OfflineSearchService = ServiceLocator.searchService
     
-    private val _uiState = MutableStateFlow(PoiDetailUiState())
-    val uiState: StateFlow<PoiDetailUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(DetailUiState())
+    val uiState: StateFlow<DetailUiState> = _uiState.asStateFlow()
     
     // 导航事件
-    private val _navigationEvent = MutableSharedFlow<PoiDetailNavigationEvent>()
+    private val _navigationEvent = MutableSharedFlow<DetailNavigationEvent>()
     val navigationEvent = _navigationEvent.asSharedFlow()
     
-    // 从路由参数获取 POI ID
-    private var poiId: String = savedStateHandle.get<String>(Screen.ARG_POI_ID) ?: ""
-    
-    init {
-        if (poiId.isNotEmpty()) {
-            loadPoiDetail()
-        }
-    }
+    // 当前 POI ID
+    private var currentPoiId: String = ""
     
     /**
-     * 通过 ID 加载 POI 详情（供 Overlay 使用）
+     * 通过 ID 加载 POI 详情
      */
     fun loadPoiById(id: String) {
-        if (id != poiId || _uiState.value.poi == null) {
-            poiId = id
+        if (id != currentPoiId || _uiState.value.poi == null) {
+            currentPoiId = id
             loadPoiDetail()
         }
     }
@@ -77,7 +67,7 @@ class PoiDetailViewModel(
                 }
                 
                 // 获取 POI 详情
-                val id = poiId.toLongOrNull()
+                val id = currentPoiId.toLongOrNull()
                 if (id == null) {
                     _uiState.update {
                         it.copy(
@@ -132,14 +122,14 @@ class PoiDetailViewModel(
     /**
      * 处理事件
      */
-    fun onEvent(event: PoiDetailEvent) {
+    fun onEvent(event: DetailEvent) {
         when (event) {
-            PoiDetailEvent.NavigateBack -> navigateBack()
-            PoiDetailEvent.NavigateTo -> navigateToPoi()
-            PoiDetailEvent.ToggleFavorite -> toggleFavorite()
-            PoiDetailEvent.CallPhone -> callPhone()
-            PoiDetailEvent.Share -> sharePoi()
-            PoiDetailEvent.ViewOnMap -> viewOnMap()
+            DetailEvent.NavigateBack -> navigateBack()
+            DetailEvent.NavigateTo -> navigateToPoi()
+            DetailEvent.ToggleFavorite -> toggleFavorite()
+            DetailEvent.CallPhone -> callPhone()
+            DetailEvent.Share -> sharePoi()
+            DetailEvent.ViewOnMap -> viewOnMap()
         }
     }
     
@@ -148,7 +138,7 @@ class PoiDetailViewModel(
      */
     private fun navigateBack() {
         viewModelScope.launch {
-            _navigationEvent.emit(PoiDetailNavigationEvent.Back)
+            _navigationEvent.emit(DetailNavigationEvent.Back)
         }
     }
     
@@ -159,7 +149,7 @@ class PoiDetailViewModel(
         val poi = _uiState.value.poi ?: return
         viewModelScope.launch {
             _navigationEvent.emit(
-                PoiDetailNavigationEvent.NavigateToRoute(
+                DetailNavigationEvent.NavigateToRoute(
                     destLat = poi.lat,
                     destLon = poi.lon,
                     destName = poi.name
@@ -182,7 +172,7 @@ class PoiDetailViewModel(
     private fun callPhone() {
         val phone = _uiState.value.poi?.phone ?: return
         viewModelScope.launch {
-            _navigationEvent.emit(PoiDetailNavigationEvent.MakePhoneCall(phone))
+            _navigationEvent.emit(DetailNavigationEvent.MakePhoneCall(phone))
         }
     }
     
@@ -193,7 +183,7 @@ class PoiDetailViewModel(
         val poi = _uiState.value.poi ?: return
         viewModelScope.launch {
             _navigationEvent.emit(
-                PoiDetailNavigationEvent.SharePoi(
+                DetailNavigationEvent.SharePoi(
                     name = poi.name,
                     address = poi.address
                 )
@@ -205,6 +195,7 @@ class PoiDetailViewModel(
      * 在地图上查看
      */
     private fun viewOnMap() {
-        // TODO: 跳转到地图页面并定位到该位置
+        // 在 Overlay 架构下，地图已经在底层显示
     }
 }
+

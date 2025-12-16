@@ -1,12 +1,12 @@
-package com.example.amap_sim.ui.screen.route
+package com.example.amap_sim.ui.screen.mapcontainer.overlay.route
 
 import com.example.amap_sim.domain.model.LatLng
 import com.example.amap_sim.domain.model.RouteResult
 
 /**
- * 路线规划页 UI 状态
+ * 路线规划 Overlay UI 状态
  */
-data class RoutePlanningUiState(
+data class RouteUiState(
     /** 起点位置 */
     val startLocation: LocationInput = LocationInput.CurrentLocation,
     /** 终点位置 */
@@ -86,43 +86,44 @@ enum class TravelProfile(
 }
 
 /**
- * 路线规划页事件
+ * 路线规划事件
  */
-sealed class RoutePlanningEvent {
+sealed class RouteEvent {
     /** 返回 */
-    data object NavigateBack : RoutePlanningEvent()
+    data object NavigateBack : RouteEvent()
     /** 切换交通方式 */
-    data class SelectProfile(val profile: TravelProfile) : RoutePlanningEvent()
+    data class SelectProfile(val profile: TravelProfile) : RouteEvent()
     /** 交换起点终点 */
-    data object SwapLocations : RoutePlanningEvent()
+    data object SwapLocations : RouteEvent()
     /** 设置起点 */
-    data class SetStartLocation(val location: LocationInput) : RoutePlanningEvent()
+    data class SetStartLocation(val location: LocationInput) : RouteEvent()
     /** 设置终点 */
-    data class SetEndLocation(val location: LocationInput) : RoutePlanningEvent()
+    data class SetEndLocation(val location: LocationInput) : RouteEvent()
     /** 计算路线 */
-    data object CalculateRoute : RoutePlanningEvent()
+    data object CalculateRoute : RouteEvent()
     /** 切换显示指令详情 */
-    data object ToggleInstructions : RoutePlanningEvent()
+    data object ToggleInstructions : RouteEvent()
     /** 开始导航 */
-    data object StartNavigation : RoutePlanningEvent()
+    data object StartNavigation : RouteEvent()
     /** 点击起点输入框 */
-    data object ClickStartInput : RoutePlanningEvent()
+    data object ClickStartInput : RouteEvent()
     /** 点击终点输入框 */
-    data object ClickEndInput : RoutePlanningEvent()
+    data object ClickEndInput : RouteEvent()
     /** 清除错误 */
-    data object ClearError : RoutePlanningEvent()
+    data object ClearError : RouteEvent()
 }
 
 /**
- * 导航事件
+ * 路线导航事件
  */
-sealed class RoutePlanningNavigationEvent {
+sealed class RouteNavigationEvent {
     /** 返回上一页 */
-    data object Back : RoutePlanningNavigationEvent()
+    data object Back : RouteNavigationEvent()
     /** 跳转到搜索页选择起点 */
-    data object SelectStartFromSearch : RoutePlanningNavigationEvent()
+    data object SelectStartFromSearch : RouteNavigationEvent()
     /** 跳转到搜索页选择终点 */
-    data object SelectEndFromSearch : RoutePlanningNavigationEvent()
+    data object SelectEndFromSearch : RouteNavigationEvent()
     /** 开始导航 */
-    data class StartNavigation(val routeResult: RouteResult) : RoutePlanningNavigationEvent()
+    data class StartNavigation(val routeResult: RouteResult) : RouteNavigationEvent()
 }
+

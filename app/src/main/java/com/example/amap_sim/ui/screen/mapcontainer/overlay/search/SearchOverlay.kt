@@ -57,12 +57,7 @@ import com.example.amap_sim.domain.model.MarkerType
 import com.example.amap_sim.domain.model.PoiResult
 import com.example.amap_sim.ui.components.SearchBarInput
 import com.example.amap_sim.ui.screen.mapcontainer.MapStateController
-import com.example.amap_sim.ui.screen.search.CategoryItem
-import com.example.amap_sim.ui.screen.search.NavigationEvent
-import com.example.amap_sim.ui.screen.search.SearchEvent
-import com.example.amap_sim.ui.screen.search.SearchUiState
-import com.example.amap_sim.ui.screen.search.SearchViewModel
-import com.example.amap_sim.ui.screen.search.components.PoiListItem
+import com.example.amap_sim.ui.screen.mapcontainer.overlay.search.components.PoiListItem
 import com.example.amap_sim.ui.theme.AmapBlue
 import com.example.amap_sim.ui.theme.Gray400
 import com.example.amap_sim.ui.theme.Gray500
@@ -87,8 +82,8 @@ fun SearchOverlay(
     LaunchedEffect(Unit) {
         viewModel.navigationEvent.collect { event ->
             when (event) {
-                is NavigationEvent.NavigateToPoiDetail -> onPoiSelected(event.poi)
-                is NavigationEvent.NavigateToRoute -> { /* TODO: 导航到路线规划 */ }
+                is SearchNavigationEvent.NavigateToPoiDetail -> onPoiSelected(event.poi)
+                is SearchNavigationEvent.NavigateToRoute -> { /* TODO: 导航到路线规划 */ }
             }
         }
     }

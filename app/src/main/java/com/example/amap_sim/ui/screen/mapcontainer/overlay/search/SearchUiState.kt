@@ -1,9 +1,9 @@
-package com.example.amap_sim.ui.screen.search
+package com.example.amap_sim.ui.screen.mapcontainer.overlay.search
 
 import com.example.amap_sim.domain.model.PoiResult
 
 /**
- * 搜索页 UI 状态
+ * 搜索 Overlay UI 状态
  */
 data class SearchUiState(
     /** 搜索关键词 */
@@ -39,7 +39,7 @@ data class CategoryItem(
 )
 
 /**
- * 搜索页事件
+ * 搜索事件
  */
 sealed class SearchEvent {
     /** 更新搜索关键词 */
@@ -79,3 +79,4 @@ val defaultCategories = listOf(
     CategoryItem("生活服务", "生活", "home_repair_service"),
     CategoryItem("办公", "办公", "business")
 )
+

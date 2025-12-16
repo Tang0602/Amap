@@ -60,10 +60,6 @@ import com.example.amap_sim.domain.model.LatLng
 import com.example.amap_sim.domain.model.MarkerData
 import com.example.amap_sim.domain.model.MarkerType
 import com.example.amap_sim.domain.model.PoiResult
-import com.example.amap_sim.ui.screen.detail.PoiDetailEvent
-import com.example.amap_sim.ui.screen.detail.PoiDetailNavigationEvent
-import com.example.amap_sim.ui.screen.detail.PoiDetailUiState
-import com.example.amap_sim.ui.screen.detail.PoiDetailViewModel
 import com.example.amap_sim.ui.screen.mapcontainer.MapStateController
 import com.example.amap_sim.ui.theme.AmapBlue
 import com.example.amap_sim.ui.theme.Gray400
@@ -80,7 +76,7 @@ fun DetailOverlay(
     mapController: MapStateController,
     onNavigateBack: () -> Unit,
     onNavigateToRoute: (Double, Double, String) -> Unit,
-    viewModel: PoiDetailViewModel = viewModel()
+    viewModel: DetailViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -110,20 +106,20 @@ fun DetailOverlay(
     LaunchedEffect(Unit) {
         viewModel.navigationEvent.collect { event ->
             when (event) {
-                PoiDetailNavigationEvent.Back -> {
+                DetailNavigationEvent.Back -> {
                     mapController.clearMarkers()
                     onNavigateBack()
                 }
-                is PoiDetailNavigationEvent.NavigateToRoute -> {
+                is DetailNavigationEvent.NavigateToRoute -> {
                     onNavigateToRoute(event.destLat, event.destLon, event.destName)
                 }
-                is PoiDetailNavigationEvent.MakePhoneCall -> {
+                is DetailNavigationEvent.MakePhoneCall -> {
                     val intent = Intent(Intent.ACTION_DIAL).apply {
                         data = Uri.parse("tel:${event.phone}")
                     }
                     context.startActivity(intent)
                 }
-                is PoiDetailNavigationEvent.SharePoi -> {
+                is DetailNavigationEvent.SharePoi -> {
                     val shareText = buildString {
                         append(event.name)
                         if (!event.address.isNullOrBlank()) {
@@ -152,8 +148,8 @@ fun DetailOverlay(
 
 @Composable
 private fun DetailOverlayContent(
-    uiState: PoiDetailUiState,
-    onEvent: (PoiDetailEvent) -> Unit,
+    uiState: DetailUiState,
+    onEvent: (DetailEvent) -> Unit,
     onBack: () -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
@@ -231,7 +227,7 @@ private fun TopBar(
 private fun PoiDetailCard(
     poi: PoiResult,
     isFavorite: Boolean,
-    onEvent: (PoiDetailEvent) -> Unit,
+    onEvent: (DetailEvent) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val clipboardManager = LocalClipboardManager.current
@@ -309,7 +305,7 @@ private fun PoiDetailCard(
                     value = it,
                     actionIcon = Icons.Default.Call,
                     actionTint = AmapBlue,
-                    onAction = { onEvent(PoiDetailEvent.CallPhone) }
+                    onAction = { onEvent(DetailEvent.CallPhone) }
                 )
                 Spacer(modifier = Modifier.height(8.dp))
             }
@@ -320,9 +316,9 @@ private fun PoiDetailCard(
             ActionButtonsRow(
                 poi = poi,
                 isFavorite = isFavorite,
-                onNavigateTo = { onEvent(PoiDetailEvent.NavigateTo) },
-                onToggleFavorite = { onEvent(PoiDetailEvent.ToggleFavorite) },
-                onShare = { onEvent(PoiDetailEvent.Share) }
+                onNavigateTo = { onEvent(DetailEvent.NavigateTo) },
+                onToggleFavorite = { onEvent(DetailEvent.ToggleFavorite) },
+                onShare = { onEvent(DetailEvent.Share) }
             )
         }
     }

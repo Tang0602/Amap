@@ -1,4 +1,4 @@
-package com.example.amap_sim.ui.screen.search
+package com.example.amap_sim.ui.screen.mapcontainer.overlay.search
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
@@ -18,7 +18,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * 搜索页 ViewModel
+ * 搜索 Overlay ViewModel
  */
 class SearchViewModel : ViewModel() {
     
@@ -34,7 +34,7 @@ class SearchViewModel : ViewModel() {
     val uiState: StateFlow<SearchUiState> = _uiState.asStateFlow()
     
     // 导航事件
-    private val _navigationEvent = MutableSharedFlow<NavigationEvent>()
+    private val _navigationEvent = MutableSharedFlow<SearchNavigationEvent>()
     val navigationEvent = _navigationEvent.asSharedFlow()
     
     // 搜索任务
@@ -366,7 +366,7 @@ class SearchViewModel : ViewModel() {
      */
     private fun selectPoi(poi: PoiResult) {
         viewModelScope.launch {
-            _navigationEvent.emit(NavigationEvent.NavigateToPoiDetail(poi))
+            _navigationEvent.emit(SearchNavigationEvent.NavigateToPoiDetail(poi))
         }
     }
     
@@ -384,9 +384,10 @@ class SearchViewModel : ViewModel() {
 }
 
 /**
- * 导航事件
+ * 搜索导航事件
  */
-sealed class NavigationEvent {
-    data class NavigateToPoiDetail(val poi: PoiResult) : NavigationEvent()
-    data class NavigateToRoute(val destination: PoiResult) : NavigationEvent()
+sealed class SearchNavigationEvent {
+    data class NavigateToPoiDetail(val poi: PoiResult) : SearchNavigationEvent()
+    data class NavigateToRoute(val destination: PoiResult) : SearchNavigationEvent()
 }
+
