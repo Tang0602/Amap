@@ -31,6 +31,7 @@ import com.example.amap_sim.ui.screen.mapcontainer.components.MapControls
 import com.example.amap_sim.ui.screen.mapcontainer.overlay.detail.DetailOverlay
 import com.example.amap_sim.ui.screen.mapcontainer.overlay.home.HomeOverlay
 import com.example.amap_sim.ui.screen.mapcontainer.overlay.route.RoutePlanningOverlay
+import com.example.amap_sim.ui.screen.mapcontainer.overlay.route.TravelProfile
 import com.example.amap_sim.ui.screen.mapcontainer.overlay.search.SearchOverlay
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -48,9 +49,6 @@ import kotlinx.coroutines.launch
 fun MapContainerScreen(
     viewModel: MapContainerViewModel = viewModel(),
     onNavigateToNavigation: (RouteResult) -> Unit = {},
-    onNavigateToDrive: () -> Unit = {},
-    onNavigateToBike: () -> Unit = {},
-    onNavigateToWalk: () -> Unit = {},
     onNavigateToMore: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -155,9 +153,9 @@ fun MapContainerScreen(
                         HomeOverlay(
                             mapController = viewModel,
                             onNavigateToSearch = { viewModel.openSearch() },
-                            onNavigateToDrive = onNavigateToDrive,
-                            onNavigateToBike = onNavigateToBike,
-                            onNavigateToWalk = onNavigateToWalk,
+                            onNavigateToDrive = { viewModel.openRoutePlanning(initialProfile = TravelProfile.CAR) },
+                            onNavigateToBike = { viewModel.openRoutePlanning(initialProfile = TravelProfile.BIKE) },
+                            onNavigateToWalk = { viewModel.openRoutePlanning(initialProfile = TravelProfile.FOOT) },
                             onNavigateToMore = onNavigateToMore
                         )
                     }
@@ -188,6 +186,7 @@ fun MapContainerScreen(
                             destLat = overlayState.destLat,
                             destLon = overlayState.destLon,
                             destName = overlayState.destName,
+                            initialProfile = overlayState.initialProfile,
                             mapController = viewModel,
                             onNavigateBack = { viewModel.navigateBack() },
                             onNavigateToSearch = { viewModel.openSearch() },

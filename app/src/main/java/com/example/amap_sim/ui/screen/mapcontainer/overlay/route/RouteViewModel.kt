@@ -38,6 +38,13 @@ class RouteViewModel : ViewModel() {
     val navigationEvent = _navigationEvent.asSharedFlow()
     
     /**
+     * 设置初始交通方式（供 Overlay 初始化使用）
+     */
+    fun setInitialProfile(profile: TravelProfile) {
+        _uiState.update { it.copy(selectedProfile = profile) }
+    }
+    
+    /**
      * 设置目的地（供 Overlay 初始化使用）
      */
     fun setDestination(lat: Double, lon: Double, name: String?) {

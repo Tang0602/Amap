@@ -75,6 +75,7 @@ fun RoutePlanningOverlay(
     destLat: Double? = null,
     destLon: Double? = null,
     destName: String? = null,
+    initialProfile: TravelProfile? = null,
     mapController: MapStateController,
     onNavigateBack: () -> Unit,
     onNavigateToSearch: () -> Unit,
@@ -82,6 +83,13 @@ fun RoutePlanningOverlay(
     viewModel: RouteViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    
+    // 初始化交通方式（如果从快捷入口进入）
+    LaunchedEffect(initialProfile) {
+        initialProfile?.let { profile ->
+            viewModel.setInitialProfile(profile)
+        }
+    }
     
     // 初始化目的地（如果从详情页传入）
     LaunchedEffect(destLat, destLon, destName) {

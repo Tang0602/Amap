@@ -6,6 +6,7 @@ import com.example.amap_sim.domain.model.LatLng
 import com.example.amap_sim.domain.model.MarkerData
 import com.example.amap_sim.domain.model.MarkerType
 import com.example.amap_sim.domain.model.RouteResult
+import com.example.amap_sim.ui.screen.mapcontainer.overlay.route.TravelProfile
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -108,9 +109,19 @@ class MapContainerViewModel : ViewModel(), MapStateController {
     
     /**
      * 打开路线规划 Overlay
+     * 
+     * @param destLat 目的地纬度（可选）
+     * @param destLon 目的地经度（可选）
+     * @param destName 目的地名称（可选）
+     * @param initialProfile 初始交通方式（可选）
      */
-    fun openRoutePlanning(destLat: Double? = null, destLon: Double? = null, destName: String? = null) {
-        navigateToOverlay(MapOverlayState.RoutePlanning(destLat, destLon, destName))
+    fun openRoutePlanning(
+        destLat: Double? = null, 
+        destLon: Double? = null, 
+        destName: String? = null,
+        initialProfile: TravelProfile? = null
+    ) {
+        navigateToOverlay(MapOverlayState.RoutePlanning(destLat, destLon, destName, initialProfile))
     }
     
     // ============== 地图生命周期 ==============

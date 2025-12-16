@@ -30,21 +30,6 @@ sealed class Screen(val route: String) {
     }
     
     /**
-     * 驾车入口页（开发中）
-     */
-    data object Drive : Screen("drive")
-    
-    /**
-     * 骑行入口页（开发中）
-     */
-    data object Bike : Screen("bike")
-    
-    /**
-     * 步行入口页（开发中）
-     */
-    data object Walk : Screen("walk")
-    
-    /**
      * 更多功能页（开发中）
      */
     data object More : Screen("more")

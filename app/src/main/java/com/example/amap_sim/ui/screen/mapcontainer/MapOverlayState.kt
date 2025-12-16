@@ -1,5 +1,7 @@
 package com.example.amap_sim.ui.screen.mapcontainer
 
+import com.example.amap_sim.ui.screen.mapcontainer.overlay.route.TravelProfile
+
 /**
  * Overlay 状态定义
  * 
@@ -32,11 +34,13 @@ sealed class MapOverlayState {
      * @param destLat 目的地纬度（可选）
      * @param destLon 目的地经度（可选）
      * @param destName 目的地名称（可选）
+     * @param initialProfile 初始交通方式（可选）
      */
     data class RoutePlanning(
         val destLat: Double? = null,
         val destLon: Double? = null,
-        val destName: String? = null
+        val destName: String? = null,
+        val initialProfile: TravelProfile? = null
     ) : MapOverlayState()
     
     companion object {
