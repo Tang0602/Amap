@@ -6,14 +6,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.filled.GpsFixed
 import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -93,22 +90,23 @@ fun MapControls(
         }
         
         // 定位按钮
-        FloatingActionButton(
-            onClick = onLocate,
-            modifier = Modifier.size(44.dp),
-            shape = CircleShape,
-            containerColor = Color.White,
-            contentColor = Color(0xFF666666),
-            elevation = FloatingActionButtonDefaults.elevation(
-                defaultElevation = 4.dp,
-                pressedElevation = 8.dp
-            )
+        Surface(
+            modifier = Modifier
+                .size(44.dp)
+                .shadow(4.dp, RoundedCornerShape(8.dp)),
+            shape = RoundedCornerShape(8.dp),
+            color = Color.White
         ) {
-            Icon(
-                imageVector = Icons.Default.MyLocation,
-                contentDescription = "定位",
-                modifier = Modifier.size(24.dp)
-            )
+            IconButton(
+                onClick = onLocate,
+                modifier = Modifier.size(44.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.GpsFixed,
+                    contentDescription = "定位",
+                    tint = Color(0xFF666666)
+                )
+            }
         }
     }
 }
