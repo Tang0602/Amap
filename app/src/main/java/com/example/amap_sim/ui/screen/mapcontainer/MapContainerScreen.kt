@@ -47,7 +47,11 @@ import kotlinx.coroutines.launch
 @Composable
 fun MapContainerScreen(
     viewModel: MapContainerViewModel = viewModel(),
-    onNavigateToNavigation: (RouteResult) -> Unit = {}
+    onNavigateToNavigation: (RouteResult) -> Unit = {},
+    onNavigateToDrive: () -> Unit = {},
+    onNavigateToBike: () -> Unit = {},
+    onNavigateToWalk: () -> Unit = {},
+    onNavigateToMore: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -151,7 +155,11 @@ fun MapContainerScreen(
                         HomeOverlay(
                             mapController = viewModel,
                             onNavigateToSearch = { viewModel.openSearch() },
-                            onNavigateToRoutePlanning = { viewModel.openRoutePlanning() }
+                            onNavigateToRoutePlanning = { viewModel.openRoutePlanning() },
+                            onNavigateToDrive = onNavigateToDrive,
+                            onNavigateToBike = onNavigateToBike,
+                            onNavigateToWalk = onNavigateToWalk,
+                            onNavigateToMore = onNavigateToMore
                         )
                     }
                     

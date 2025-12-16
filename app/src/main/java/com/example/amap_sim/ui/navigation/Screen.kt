@@ -29,18 +29,28 @@ sealed class Screen(val route: String) {
         }
     }
     
+    /**
+     * 驾车入口页（开发中）
+     */
+    data object Drive : Screen("drive")
+    
+    /**
+     * 骑行入口页（开发中）
+     */
+    data object Bike : Screen("bike")
+    
+    /**
+     * 步行入口页（开发中）
+     */
+    data object Walk : Screen("walk")
+    
+    /**
+     * 更多功能页（开发中）
+     */
+    data object More : Screen("more")
+    
     companion object {
         // 路由参数名
         const val ARG_ROUTE_ID = "routeId"
-        
-        // 以下参数仅用于兼容旧代码，后续版本可删除
-        @Deprecated("Overlay 架构不再使用此参数")
-        const val ARG_POI_ID = "poiId"
-        @Deprecated("Overlay 架构不再使用此参数")
-        const val ARG_DEST_LAT = "destLat"
-        @Deprecated("Overlay 架构不再使用此参数")
-        const val ARG_DEST_LON = "destLon"
-        @Deprecated("Overlay 架构不再使用此参数")
-        const val ARG_DEST_NAME = "destName"
     }
 }

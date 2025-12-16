@@ -366,6 +366,9 @@ app/src/main/
 │   │   │   ├── SearchBarDisplay.kt          # 搜索框展示组件
 │   │   │   └── SearchBarInput.kt            # 搜索框输入组件
 │   │   │
+│   │   ├── common/                          # 通用页面
+│   │   │   └── UnderConstructionScreen.kt   # ⚠️ 功能开发中占位页
+│   │   │
 │   │   ├── navigation/                      # 导航
 │   │   │   ├── NavGraph.kt                  # 导航图
 │   │   │   └── Screen.kt                    # 路由定义
@@ -791,6 +794,29 @@ app/src/main/
 ---
 
 ## 注意事项
+
+### 0. 未实现功能处理
+
+**所有未实现功能的按钮都应跳转到 `UnderConstructionScreen`**
+
+| 文件 | 位置 | 用途 |
+|------|------|------|
+| `UnderConstructionScreen.kt` | `ui/screen/common/` | 功能开发中占位页 |
+
+**使用场景**：
+- 底部导航栏中未实现的 Tab
+- 快捷入口中未实现的功能（如：驾车、骑行、步行独立入口）
+- 设置页中未实现的选项
+- 任何暂未开发完成的功能入口
+
+**参数**：`title`（标题）、`description`（描述）、`icon`（图标）、`onNavigateBack`（返回回调）
+
+**目的**：
+- 提供统一的用户体验
+- 避免点击无响应的按钮
+- 明确告知用户功能开发状态
+
+---
 
 ### 1. 数据文件体积
 

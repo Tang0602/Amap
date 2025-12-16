@@ -14,6 +14,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DirectionsBike
+import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.DirectionsWalk
+import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Navigation
 import com.example.amap_sim.ui.screen.common.UnderConstructionScreen
 import com.example.amap_sim.ui.screen.mapcontainer.MapContainerScreen
@@ -74,7 +78,11 @@ fun AmapNavGraph(
                     NavigationStateHolder.setRouteForNavigation(routeResult)
                     // 跳转到导航页
                     navController.navigate(Screen.Navigation.createRoute("route_${System.currentTimeMillis()}"))
-                }
+                },
+                onNavigateToDrive = { navController.navigate(Screen.Drive.route) },
+                onNavigateToBike = { navController.navigate(Screen.Bike.route) },
+                onNavigateToWalk = { navController.navigate(Screen.Walk.route) },
+                onNavigateToMore = { navController.navigate(Screen.More.route) }
             )
         }
         
@@ -122,6 +130,102 @@ fun AmapNavGraph(
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
+        }
+        
+        // 驾车入口页（开发中）
+        composable(
+            route = Screen.Drive.route,
+            enterTransition = {
+                slideIntoContainer(
+                    towards = AnimatedContentTransitionScope.SlideDirection.Up,
+                    animationSpec = tween(300)
+                )
+            },
+            exitTransition = {
+                slideOutOfContainer(
+                    towards = AnimatedContentTransitionScope.SlideDirection.Down,
+                    animationSpec = tween(300)
+                )
+            }
+        ) {
+            UnderConstructionScreen(
+                title = "驾车",
+                description = "驾车导航功能正在开发中，即将支持实时路况、躲避拥堵等功能！",
+                icon = Icons.Default.DirectionsCar,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        
+        // 骑行入口页（开发中）
+        composable(
+            route = Screen.Bike.route,
+            enterTransition = {
+                slideIntoContainer(
+                    towards = AnimatedContentTransitionScope.SlideDirection.Up,
+                    animationSpec = tween(300)
+                )
+            },
+            exitTransition = {
+                slideOutOfContainer(
+                    towards = AnimatedContentTransitionScope.SlideDirection.Down,
+                    animationSpec = tween(300)
+                )
+            }
+        ) {
+            UnderConstructionScreen(
+                title = "骑行",
+                description = "骑行导航功能正在开发中，即将支持骑行路线规划、卡路里计算等功能！",
+                icon = Icons.Default.DirectionsBike,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        
+        // 步行入口页（开发中）
+        composable(
+            route = Screen.Walk.route,
+            enterTransition = {
+                slideIntoContainer(
+                    towards = AnimatedContentTransitionScope.SlideDirection.Up,
+                    animationSpec = tween(300)
+                )
+            },
+            exitTransition = {
+                slideOutOfContainer(
+                    towards = AnimatedContentTransitionScope.SlideDirection.Down,
+                    animationSpec = tween(300)
+                )
+            }
+        ) {
+            UnderConstructionScreen(
+                title = "步行",
+                description = "步行导航功能正在开发中，即将支持步行路线、室内导航等功能！",
+                icon = Icons.Default.DirectionsWalk,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        
+        // 更多功能页（开发中）
+        composable(
+            route = Screen.More.route,
+            enterTransition = {
+                slideIntoContainer(
+                    towards = AnimatedContentTransitionScope.SlideDirection.Up,
+                    animationSpec = tween(300)
+                )
+            },
+            exitTransition = {
+                slideOutOfContainer(
+                    towards = AnimatedContentTransitionScope.SlideDirection.Down,
+                    animationSpec = tween(300)
+                )
+            }
+        ) {
+            UnderConstructionScreen(
+                title = "更多",
+                description = "更多精彩功能正在开发中，敬请期待！",
+                icon = Icons.Default.MoreHoriz,
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
     }
 }
