@@ -25,8 +25,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.amap_sim.domain.model.RouteResult
-import com.example.amap_sim.ui.screen.map.MapCommand
-import com.example.amap_sim.ui.screen.map.components.MapsforgeMapView
+import com.example.amap_sim.ui.components.map.MapCommand
+import com.example.amap_sim.ui.components.map.MapsforgeMapView
 import com.example.amap_sim.ui.screen.mapcontainer.components.MapControls
 import com.example.amap_sim.ui.screen.mapcontainer.overlay.detail.DetailOverlay
 import com.example.amap_sim.ui.screen.mapcontainer.overlay.home.HomeOverlay

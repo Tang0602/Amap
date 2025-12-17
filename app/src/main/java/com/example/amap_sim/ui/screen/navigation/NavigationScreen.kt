@@ -33,8 +33,8 @@ import com.example.amap_sim.domain.model.MarkerData
 import com.example.amap_sim.domain.model.MarkerType
 import com.example.amap_sim.domain.model.RouteInstruction
 import com.example.amap_sim.domain.model.RouteResult
-import com.example.amap_sim.ui.screen.map.MapCommand
-import com.example.amap_sim.ui.screen.map.components.MapsforgeMapView
+import com.example.amap_sim.ui.components.map.MapCommand
+import com.example.amap_sim.ui.components.map.MapsforgeMapView
 import com.example.amap_sim.ui.screen.navigation.components.ArrivalCard
 import com.example.amap_sim.ui.screen.navigation.components.CurrentInstructionCard
 import com.example.amap_sim.ui.screen.navigation.components.NavigationControls

@@ -1,4 +1,4 @@
-package com.example.amap_sim.ui.screen.map.components
+package com.example.amap_sim.ui.components.map
 
 import android.graphics.drawable.Drawable
 import android.util.Log
@@ -25,8 +25,7 @@ import com.example.amap_sim.domain.model.MarkerData
 import com.example.amap_sim.domain.model.MarkerType
 import com.example.amap_sim.domain.model.RouteResult
 import com.example.amap_sim.domain.model.toLatLng
-import com.example.amap_sim.ui.screen.map.MapCommand
-import com.example.amap_sim.ui.screen.map.MapEvent
+import com.example.amap_sim.ui.components.map.MapCommand
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import org.mapsforge.core.graphics.Paint
@@ -65,7 +64,6 @@ private const val TAG = "MapsforgeMapView"
  * @param onMapLongPress 地图长按回调
  * @param onMarkerClick 标记点点击回调
  * @param onMapMoveEnd 地图移动结束回调
- * @param onEvent 所有事件的统一回调
  */
 @Composable
 fun MapsforgeMapView(
@@ -81,8 +79,7 @@ fun MapsforgeMapView(
     onMapClick: (LatLng) -> Unit = {},
     onMapLongPress: (LatLng) -> Unit = {},
     onMarkerClick: (MarkerData) -> Unit = {},
-    onMapMoveEnd: (center: LatLng, zoom: Int) -> Unit = { _, _ -> },
-    onEvent: (MapEvent) -> Unit = {}
+    onMapMoveEnd: (center: LatLng, zoom: Int) -> Unit = { _, _ -> }
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -158,26 +155,13 @@ fun MapsforgeMapView(
             setupMapListeners(
                 mapView = mapView,
                 state = state,
-                onMapClick = { pos ->
-                    onMapClick(pos)
-                    onEvent(MapEvent.MapClick(pos))
-                },
-                onMapLongPress = { pos ->
-                    onMapLongPress(pos)
-                    onEvent(MapEvent.MapLongPress(pos))
-                },
-                onMarkerClick = { marker ->
-                    onMarkerClick(marker)
-                    onEvent(MapEvent.MarkerClick(marker))
-                },
-                onMapMoveEnd = { c, z ->
-                    onMapMoveEnd(c, z)
-                    onEvent(MapEvent.MapMoveEnd(c, z))
-                }
+                onMapClick = onMapClick,
+                onMapLongPress = onMapLongPress,
+                onMarkerClick = onMarkerClick,
+                onMapMoveEnd = onMapMoveEnd
             )
             
             onMapReady()
-            onEvent(MapEvent.MapReady)
             
             Log.i(TAG, "地图初始化完成")
         } catch (e: Exception) {
