@@ -6,10 +6,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.amap_sim.domain.model.LatLng
 import com.example.amap_sim.domain.model.RouteResult
+import com.example.amap_sim.ui.components.map.MapCommand
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -57,6 +59,10 @@ class NavigationViewModel(
     private val _navigationEvent = MutableSharedFlow<NavigationNavigationEvent>()
     val navigationEvent = _navigationEvent.asSharedFlow()
     
+    // 地图命令流
+    private val _mapCommands = MutableSharedFlow<MapCommand>(extraBufferCapacity = 10)
+    val mapCommands: SharedFlow<MapCommand> = _mapCommands.asSharedFlow()
+    
     // 模拟导航的 Job
     private var simulationJob: Job? = null
     
@@ -97,6 +103,11 @@ class NavigationViewModel(
                 estimatedArrivalTime = arrivalTime,
                 error = null
             )
+        }
+        
+        // 自动开始导航
+        viewModelScope.launch {
+            startNavigation()
         }
     }
     
@@ -181,11 +192,20 @@ class NavigationViewModel(
      * 切换跟随模式
      */
     private fun toggleFollowMode() {
+        val state = _uiState.value
         _uiState.update {
             it.copy(
                 isFollowingUser = !it.isFollowingUser,
                 isOverviewMode = if (!it.isFollowingUser) false else it.isOverviewMode
             )
+        }
+        
+        // 发送地图命令
+        val newState = _uiState.value
+        if (newState.isFollowingUser && !newState.isOverviewMode) {
+            sendMapFollowCommand(newState.currentLocation, newState.zoomLevel, true, false)
+        } else if (newState.isOverviewMode && newState.routeResult != null) {
+            sendMapOverviewCommand(newState.routeResult)
         }
     }
     
@@ -193,11 +213,20 @@ class NavigationViewModel(
      * 切换全览模式
      */
     private fun toggleOverviewMode() {
+        val state = _uiState.value
         _uiState.update {
             it.copy(
                 isOverviewMode = !it.isOverviewMode,
                 isFollowingUser = if (!it.isOverviewMode) false else it.isFollowingUser
             )
+        }
+        
+        // 发送地图命令
+        val newState = _uiState.value
+        if (newState.isOverviewMode && newState.routeResult != null) {
+            sendMapOverviewCommand(newState.routeResult)
+        } else if (newState.isFollowingUser && !newState.isOverviewMode) {
+            sendMapFollowCommand(newState.currentLocation, newState.zoomLevel, true, false)
         }
     }
     
@@ -258,6 +287,9 @@ class NavigationViewModel(
         
         // 更新当前位置
         _uiState.update { it.copy(currentLocation = newLocation) }
+        
+        // 发送地图跟随命令
+        sendMapFollowCommand(newLocation, state.zoomLevel, state.isFollowingUser, state.isOverviewMode)
         
         // 检查是否接近下一个指令点
         checkInstructionProgress(newLocation, routeResult)
@@ -434,6 +466,47 @@ class NavigationViewModel(
      */
     private fun clearError() {
         _uiState.update { it.copy(error = null) }
+    }
+    
+    /**
+     * 发送地图跟随命令
+     */
+    private fun sendMapFollowCommand(
+        location: LatLng,
+        zoomLevel: Int,
+        isFollowing: Boolean,
+        isOverview: Boolean
+    ) {
+        if (isFollowing && !isOverview) {
+            viewModelScope.launch {
+                _mapCommands.emit(
+                    MapCommand.MoveTo(
+                        position = location,
+                        zoomLevel = zoomLevel
+                    )
+                )
+            }
+        }
+    }
+    
+    /**
+     * 发送地图全览命令
+     */
+    private fun sendMapOverviewCommand(routeResult: RouteResult) {
+        val boundingBox = routeResult.getBoundingBox()
+        if (boundingBox != null) {
+            viewModelScope.launch {
+                _mapCommands.emit(
+                    MapCommand.FitBounds(
+                        minLat = boundingBox.minLat,
+                        maxLat = boundingBox.maxLat,
+                        minLon = boundingBox.minLon,
+                        maxLon = boundingBox.maxLon,
+                        padding = 100
+                    )
+                )
+            }
+        }
     }
     
     override fun onCleared() {

@@ -1,6 +1,8 @@
 package com.example.amap_sim.ui.screen.navigation
 
 import com.example.amap_sim.domain.model.LatLng
+import com.example.amap_sim.domain.model.MarkerData
+import com.example.amap_sim.domain.model.MarkerType
 import com.example.amap_sim.domain.model.RouteInstruction
 import com.example.amap_sim.domain.model.RouteResult
 
@@ -89,6 +91,35 @@ data class NavigationUiState(
      */
     val hasArrived: Boolean
         get() = navigationState == NavigationState.ARRIVED
+    
+    /**
+     * 获取地图标记点列表
+     */
+    val markers: List<MarkerData>
+        get() = buildList {
+            // 当前位置标记
+            add(
+                MarkerData(
+                    id = "current_location",
+                    position = currentLocation,
+                    title = "当前位置",
+                    type = MarkerType.CURRENT_LOCATION,
+                    anchorY = 0.5f
+                )
+            )
+            
+            // 终点标记
+            routeResult?.points?.lastOrNull()?.let { end ->
+                add(
+                    MarkerData(
+                        id = "end",
+                        position = end,
+                        title = "目的地",
+                        type = MarkerType.END
+                    )
+                )
+            }
+        }
 }
 
 /**

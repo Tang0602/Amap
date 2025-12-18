@@ -29,19 +29,19 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.amap_sim.domain.model.InstructionSign
 import com.example.amap_sim.domain.model.LatLng
-import com.example.amap_sim.domain.model.MarkerData
-import com.example.amap_sim.domain.model.MarkerType
 import com.example.amap_sim.domain.model.RouteInstruction
 import com.example.amap_sim.domain.model.RouteResult
 import com.example.amap_sim.ui.components.map.MapCommand
 import com.example.amap_sim.ui.components.map.MapsforgeMapView
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import com.example.amap_sim.ui.screen.navigation.components.ArrivalCard
 import com.example.amap_sim.ui.screen.navigation.components.CurrentInstructionCard
 import com.example.amap_sim.ui.screen.navigation.components.NavigationControls
 import com.example.amap_sim.ui.screen.navigation.components.NavigationInfoBar
 import com.example.amap_sim.ui.screen.navigation.components.NavigationStateIndicator
 import com.example.amap_sim.ui.theme.AmapSimTheme
-import kotlinx.coroutines.flow.MutableSharedFlow
 
 /**
  * 导航页面
@@ -85,18 +85,12 @@ fun NavigationScreen(
         }
     }
     
-    // 自动开始导航
-    LaunchedEffect(uiState.navigationState) {
-        if (uiState.navigationState == NavigationState.NOT_STARTED && uiState.routeResult != null) {
-            viewModel.onEvent(NavigationEvent.StartNavigation)
-        }
-    }
-    
     NavigationScreenContent(
         uiState = uiState,
         snackbarHostState = snackbarHostState,
         onEvent = viewModel::onEvent,
-        onFinished = onNavigationFinished
+        onFinished = onNavigationFinished,
+        mapCommands = viewModel.mapCommands
     )
 }
 
@@ -105,70 +99,10 @@ private fun NavigationScreenContent(
     uiState: NavigationUiState,
     snackbarHostState: SnackbarHostState,
     onEvent: (NavigationEvent) -> Unit,
-    onFinished: () -> Unit
+    onFinished: () -> Unit,
+    mapCommands: SharedFlow<MapCommand>
 ) {
     val routeResult = uiState.routeResult
-    
-    // 地图命令流
-    val mapCommands = remember { MutableSharedFlow<MapCommand>(extraBufferCapacity = 10) }
-    
-    // 跟随模式下更新地图位置
-    LaunchedEffect(uiState.currentLocation, uiState.isFollowingUser) {
-        if (uiState.isFollowingUser && !uiState.isOverviewMode) {
-            mapCommands.emit(
-                MapCommand.MoveTo(
-                    position = uiState.currentLocation,
-                    zoomLevel = uiState.zoomLevel
-                )
-            )
-        }
-    }
-    
-    // 全览模式下显示整条路线
-    LaunchedEffect(uiState.isOverviewMode) {
-        if (uiState.isOverviewMode && routeResult != null) {
-            val boundingBox = routeResult.getBoundingBox()
-            if (boundingBox != null) {
-                mapCommands.emit(
-                    MapCommand.FitBounds(
-                        minLat = boundingBox.minLat,
-                        maxLat = boundingBox.maxLat,
-                        minLon = boundingBox.minLon,
-                        maxLon = boundingBox.maxLon,
-                        padding = 100
-                    )
-                )
-            }
-        }
-    }
-    
-    // 构建标记点列表
-    val markers = remember(uiState.currentLocation, routeResult) {
-        buildList {
-            // 当前位置标记
-            add(
-                MarkerData(
-                    id = "current_location",
-                    position = uiState.currentLocation,
-                    title = "当前位置",
-                    type = MarkerType.CURRENT_LOCATION,
-                    anchorY = 0.5f
-                )
-            )
-            
-            // 终点标记
-            routeResult?.points?.lastOrNull()?.let { end ->
-                add(
-                    MarkerData(
-                        id = "end",
-                        position = end,
-                        title = "目的地",
-                        type = MarkerType.END
-                    )
-                )
-            }
-        }
-    }
     
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -183,7 +117,7 @@ private fun NavigationScreenContent(
                 modifier = Modifier.fillMaxSize(),
                 center = uiState.currentLocation,
                 zoomLevel = uiState.zoomLevel,
-                markers = markers,
+                markers = uiState.markers,
                 routeResult = routeResult,
                 commands = mapCommands,
                 onMapClick = { position ->
@@ -337,7 +271,8 @@ private fun NavigationScreenPreview() {
             ),
             snackbarHostState = SnackbarHostState(),
             onEvent = {},
-            onFinished = {}
+            onFinished = {},
+            mapCommands = MutableSharedFlow<MapCommand>().asSharedFlow()
         )
     }
 }
@@ -378,7 +313,8 @@ private fun NavigationScreenArrivedPreview() {
             ),
             snackbarHostState = SnackbarHostState(),
             onEvent = {},
-            onFinished = {}
+            onFinished = {},
+            mapCommands = MutableSharedFlow<MapCommand>().asSharedFlow()
         )
     }
 }
