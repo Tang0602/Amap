@@ -467,6 +467,8 @@ private fun getDefaultMarkerDrawable(
         MarkerType.START, MarkerType.END -> 48
         MarkerType.WAYPOINT -> 40
         MarkerType.CURRENT_LOCATION -> 44
+        MarkerType.POI -> 64  // POI 标记比搜索结果大
+        MarkerType.SEARCH_RESULT -> 56  // 搜索结果标记
         else -> 36
     }
     
@@ -475,7 +477,7 @@ private fun getDefaultMarkerDrawable(
         MarkerType.END -> android.graphics.Color.RED
         MarkerType.WAYPOINT -> android.graphics.Color.BLUE
         MarkerType.CURRENT_LOCATION -> android.graphics.Color.CYAN
-        MarkerType.POI -> android.graphics.Color.MAGENTA
+        MarkerType.POI -> android.graphics.Color.rgb(255, 140, 0) // Orange，和搜索结果一样
         MarkerType.SEARCH_RESULT -> android.graphics.Color.rgb(255, 140, 0) // Orange
         else -> android.graphics.Color.rgb(66, 133, 244) // 默认蓝色
     }
@@ -619,7 +621,7 @@ private fun updateCurrentLocationMarker(
  * 创建当前定位点 Drawable（高德地图风格蓝色圆点）
  */
 private fun createCurrentLocationDrawable(): android.graphics.drawable.Drawable {
-    val size = 72
+    val size = 72  // 增大当前位置图标大小，使其更明显
     val bitmap = android.graphics.Bitmap.createBitmap(
         size, size,
         android.graphics.Bitmap.Config.ARGB_8888
@@ -631,8 +633,20 @@ private fun createCurrentLocationDrawable(): android.graphics.drawable.Drawable 
     // 高德蓝色 #1E90FF (道奇蓝)
     val amapBlue = android.graphics.Color.rgb(30, 144, 255)
     
+    // 按照图片比例分配各层半径（假设整体 size = 100）
+    // 1. 最外层精度圈半径：50（size/2）
+    val accuracyRadius = size / 2f
+    
+    // 2. 白色圆环外半径：40（size * 0.40）
+    val whiteRingOuterRadius = size * 0.40f
+    
+    // 3. 蓝色实心圆半径：30（size * 0.30），减小以增加白色圆环厚度
+    val blueDotRadius = size * 0.30f
+    
+    // 4. 白色圆环厚度：10（40 - 30），更厚的白色圆环
+    val whiteRingThickness = whiteRingOuterRadius - blueDotRadius
+    
     // 1. 绘制精度圈（高德风格：浅蓝色半透明填充）
-    val accuracyRadius = size / 2f - 4
     val accuracyPaint = android.graphics.Paint().apply {
         isAntiAlias = true
         color = android.graphics.Color.argb(35, 30, 144, 255)
@@ -645,19 +659,18 @@ private fun createCurrentLocationDrawable(): android.graphics.drawable.Drawable 
         isAntiAlias = true
         color = android.graphics.Color.argb(100, 30, 144, 255)
         style = android.graphics.Paint.Style.STROKE
-        strokeWidth = 1f
+        strokeWidth = 1.5f
     }
     canvas.drawCircle(centerX, centerY, accuracyRadius, accuracyBorderPaint)
     
-    // 3. 绘制白色底圈（带阴影）
-    val dotRadius = 10f
+    // 3. 绘制白色圆环（带阴影）
     val whiteBgPaint = android.graphics.Paint().apply {
         isAntiAlias = true
         color = android.graphics.Color.WHITE
         style = android.graphics.Paint.Style.FILL
-        setShadowLayer(3f, 0f, 1.5f, android.graphics.Color.argb(80, 0, 0, 0))
+        setShadowLayer(4f, 0f, 2f, android.graphics.Color.argb(80, 0, 0, 0))
     }
-    canvas.drawCircle(centerX, centerY, dotRadius + 4f, whiteBgPaint)
+    canvas.drawCircle(centerX, centerY, whiteRingOuterRadius, whiteBgPaint)
     
     // 4. 绘制蓝色实心圆点（高德风格：纯净的蓝色圆点）
     val dotPaint = android.graphics.Paint().apply {
@@ -665,7 +678,7 @@ private fun createCurrentLocationDrawable(): android.graphics.drawable.Drawable 
         color = amapBlue
         style = android.graphics.Paint.Style.FILL
     }
-    canvas.drawCircle(centerX, centerY, dotRadius, dotPaint)
+    canvas.drawCircle(centerX, centerY, blueDotRadius, dotPaint)
     
     return android.graphics.drawable.BitmapDrawable(
         android.content.res.Resources.getSystem(),
