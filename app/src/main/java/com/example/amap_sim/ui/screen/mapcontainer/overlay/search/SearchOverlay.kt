@@ -51,9 +51,6 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.amap_sim.domain.model.LatLng
-import com.example.amap_sim.domain.model.MarkerData
-import com.example.amap_sim.domain.model.MarkerType
 import com.example.amap_sim.domain.model.PoiResult
 import com.example.amap_sim.ui.components.SearchBarInput
 import com.example.amap_sim.ui.screen.mapcontainer.MapStateController
@@ -88,35 +85,31 @@ fun SearchOverlay(
         }
     }
     
-    // 当搜索结果变化时，在地图上显示标记点
-    LaunchedEffect(uiState.searchResults) {
-        if (uiState.searchResults.isNotEmpty()) {
-            // 将搜索结果转换为地图标记
-            val markers = uiState.searchResults.map { poi ->
-                MarkerData(
-                    id = "search_result_${poi.id}",
-                    position = LatLng(poi.lat, poi.lon),
-                    title = poi.name,
-                    type = MarkerType.SEARCH_RESULT
-                )
+    // 监听地图更新状态，应用 ViewModel 计算的地图操作
+    // UI 层只负责执行，不包含业务逻辑
+    LaunchedEffect(uiState.mapUpdate) {
+        when (val update = uiState.mapUpdate) {
+            null -> { /* 无更新 */ }
+            is SearchMapUpdate.Clear -> {
+                mapController.clearMarkers()
             }
-            mapController.setMarkers(markers)
-            
-            // 如果有结果，适配边界框
-            if (markers.size > 1) {
-                val lats = markers.map { it.position.lat }
-                val lons = markers.map { it.position.lon }
-                mapController.fitBounds(
-                    minLat = lats.min(),
-                    maxLat = lats.max(),
-                    minLon = lons.min(),
-                    maxLon = lons.max()
-                )
-            } else if (markers.size == 1) {
-                mapController.moveTo(markers.first().position, 16)
+            is SearchMapUpdate.ShowMarkers -> {
+                mapController.setMarkers(update.markers)
+                
+                when {
+                    update.fitBounds && update.bounds != null -> {
+                        mapController.fitBounds(
+                            minLat = update.bounds.minLat,
+                            maxLat = update.bounds.maxLat,
+                            minLon = update.bounds.minLon,
+                            maxLon = update.bounds.maxLon
+                        )
+                    }
+                    update.moveToPosition && update.position != null -> {
+                        mapController.moveTo(update.position, update.zoomLevel)
+                    }
+                }
             }
-        } else {
-            mapController.clearMarkers()
         }
     }
     

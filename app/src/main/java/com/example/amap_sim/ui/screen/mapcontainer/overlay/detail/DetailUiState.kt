@@ -13,8 +13,30 @@ data class DetailUiState(
     /** 错误信息 */
     val error: String? = null,
     /** 是否已收藏 */
-    val isFavorite: Boolean = false
+    val isFavorite: Boolean = false,
+    /** 地图更新信息（由 ViewModel 计算） */
+    val mapUpdate: DetailMapUpdate? = null
 )
+
+/**
+ * 详情地图更新信息
+ * 
+ * 由 ViewModel 计算，包含需要更新到地图的标记和视图操作
+ */
+sealed class DetailMapUpdate {
+    /** 清除所有标记 */
+    data object Clear : DetailMapUpdate()
+    
+    /** 显示 POI 标记并定位 */
+    data class ShowPoi(
+        /** 标记点（已转换好的 MarkerData） */
+        val marker: com.example.amap_sim.domain.model.MarkerData,
+        /** 目标位置 */
+        val position: com.example.amap_sim.domain.model.LatLng,
+        /** 缩放级别 */
+        val zoomLevel: Int = 16
+    ) : DetailMapUpdate()
+}
 
 /**
  * POI 详情事件

@@ -56,9 +56,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.amap_sim.domain.model.LatLng
-import com.example.amap_sim.domain.model.MarkerData
-import com.example.amap_sim.domain.model.MarkerType
 import com.example.amap_sim.domain.model.PoiResult
 import com.example.amap_sim.ui.screen.mapcontainer.MapStateController
 import com.example.amap_sim.ui.theme.AmapBlue
@@ -86,19 +83,18 @@ fun DetailOverlay(
         viewModel.loadPoiById(poiId)
     }
     
-    // 当 POI 加载完成时，在地图上显示标记并定位
-    LaunchedEffect(uiState.poi) {
-        uiState.poi?.let { poi ->
-            // 设置 POI 标记
-            val marker = MarkerData(
-                id = "detail_poi",
-                position = LatLng(poi.lat, poi.lon),
-                title = poi.name,
-                type = MarkerType.POI
-            )
-            mapController.setMarkers(listOf(marker))
-            // 移动到 POI 位置
-            mapController.moveTo(LatLng(poi.lat, poi.lon), 16)
+    // 监听地图更新状态，应用 ViewModel 计算的地图操作
+    // UI 层只负责执行，不包含业务逻辑
+    LaunchedEffect(uiState.mapUpdate) {
+        when (val update = uiState.mapUpdate) {
+            null -> { /* 无更新 */ }
+            is DetailMapUpdate.Clear -> {
+                mapController.clearMarkers()
+            }
+            is DetailMapUpdate.ShowPoi -> {
+                mapController.setMarkers(listOf(update.marker))
+                mapController.moveTo(update.position, update.zoomLevel)
+            }
         }
     }
     

@@ -24,7 +24,9 @@ data class RouteUiState(
     /** 起点输入框是否获得焦点 */
     val isStartInputFocused: Boolean = false,
     /** 终点输入框是否获得焦点 */
-    val isEndInputFocused: Boolean = false
+    val isEndInputFocused: Boolean = false,
+    /** 地图更新信息（由 ViewModel 计算） */
+    val mapUpdate: RouteMapUpdate? = null
 )
 
 /**
@@ -83,6 +85,34 @@ enum class TravelProfile(
             return entries.find { it.profileId == id } ?: CAR
         }
     }
+}
+
+/**
+ * 路线地图更新信息
+ * 
+ * 由 ViewModel 计算，包含需要更新到地图的标记和路线
+ */
+sealed class RouteMapUpdate {
+    /** 清除所有标记和路线 */
+    data object Clear : RouteMapUpdate()
+    
+    /** 显示起点终点标记和路线 */
+    data class ShowRoute(
+        /** 起点标记（已转换好的 MarkerData） */
+        val startMarker: com.example.amap_sim.domain.model.MarkerData,
+        /** 终点标记（已转换好的 MarkerData） */
+        val endMarker: com.example.amap_sim.domain.model.MarkerData,
+        /** 路线结果 */
+        val routeResult: RouteResult
+    ) : RouteMapUpdate()
+    
+    /** 只显示起点终点标记（无路线） */
+    data class ShowMarkersOnly(
+        /** 起点标记 */
+        val startMarker: com.example.amap_sim.domain.model.MarkerData,
+        /** 终点标记 */
+        val endMarker: com.example.amap_sim.domain.model.MarkerData
+    ) : RouteMapUpdate()
 }
 
 /**

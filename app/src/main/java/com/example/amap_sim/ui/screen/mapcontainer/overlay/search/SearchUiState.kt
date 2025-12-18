@@ -21,7 +21,9 @@ data class SearchUiState(
     /** 是否显示搜索结果 */
     val showResults: Boolean = false,
     /** 错误信息 */
-    val error: String? = null
+    val error: String? = null,
+    /** 地图更新信息（由 ViewModel 计算） */
+    val mapUpdate: SearchMapUpdate? = null
 )
 
 /**
@@ -58,6 +60,42 @@ sealed class SearchEvent {
     data class SelectPoi(val poi: PoiResult) : SearchEvent()
     /** 清除错误 */
     data object ClearError : SearchEvent()
+}
+
+/**
+ * 搜索地图更新信息
+ * 
+ * 由 ViewModel 计算，包含需要更新到地图的标记和视图操作
+ */
+sealed class SearchMapUpdate {
+    /** 清除所有标记 */
+    data object Clear : SearchMapUpdate()
+    
+    /** 显示标记并适配视图 */
+    data class ShowMarkers(
+        /** 标记点列表（已转换好的 MarkerData） */
+        val markers: List<com.example.amap_sim.domain.model.MarkerData>,
+        /** 是否适配边界框（多个标记时） */
+        val fitBounds: Boolean = false,
+        /** 边界框参数（如果 fitBounds 为 true） */
+        val bounds: Bounds? = null,
+        /** 是否移动到单个位置（单个标记时） */
+        val moveToPosition: Boolean = false,
+        /** 目标位置（如果 moveToPosition 为 true） */
+        val position: com.example.amap_sim.domain.model.LatLng? = null,
+        /** 缩放级别（如果 moveToPosition 为 true） */
+        val zoomLevel: Int = 16
+    ) : SearchMapUpdate()
+    
+    /**
+     * 边界框
+     */
+    data class Bounds(
+        val minLat: Double,
+        val maxLat: Double,
+        val minLon: Double,
+        val maxLon: Double
+    )
 }
 
 /**

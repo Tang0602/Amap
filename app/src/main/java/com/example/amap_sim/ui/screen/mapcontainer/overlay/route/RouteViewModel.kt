@@ -7,12 +7,18 @@ import com.example.amap_sim.data.local.BRouterService
 import com.example.amap_sim.data.local.OfflineSearchService
 import com.example.amap_sim.di.ServiceLocator
 import com.example.amap_sim.domain.model.LatLng
+import com.example.amap_sim.domain.model.MarkerData
+import com.example.amap_sim.domain.model.MarkerType
+import com.example.amap_sim.domain.model.RouteResult
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 /**
@@ -37,11 +43,88 @@ class RouteViewModel : ViewModel() {
     private val _navigationEvent = MutableSharedFlow<RouteNavigationEvent>()
     val navigationEvent = _navigationEvent.asSharedFlow()
     
+    init {
+        observeRouteChanges()
+    }
+    
     /**
      * 设置初始交通方式（供 Overlay 初始化使用）
      */
     fun setInitialProfile(profile: TravelProfile) {
         _uiState.update { it.copy(selectedProfile = profile) }
+    }
+    
+    /**
+     * 监听路线相关状态变化，计算地图更新信息
+     * 
+     * 业务逻辑：根据起点、终点和路线结果创建地图标记和路线显示
+     */
+    private fun observeRouteChanges() {
+        viewModelScope.launch {
+            combine(
+                uiState.map { it.startLocation },
+                uiState.map { it.endLocation },
+                uiState.map { it.routeResult }
+            ) { start: LocationInput, end: LocationInput?, route: RouteResult? ->
+                Triple(start, end, route)
+            }
+                .distinctUntilChanged()
+                .collect { (start, end, route) ->
+                    updateMapState(start, end, route)
+                }
+        }
+    }
+    
+    /**
+     * 更新地图状态
+     * 
+     * 根据起点、终点和路线结果计算需要的地图更新操作
+     */
+    private fun updateMapState(
+        startLocation: LocationInput,
+        endLocation: LocationInput?,
+        routeResult: RouteResult?
+    ) {
+        val start = startLocation.getLatLng()
+        val end = endLocation?.getLatLng()
+        
+        if (end == null) {
+            // 没有终点，清除地图
+            _uiState.update { it.copy(mapUpdate = RouteMapUpdate.Clear) }
+            return
+        }
+        
+        // 创建起点终点标记
+        val startMarker = MarkerData(
+            id = "route_start",
+            position = start,
+            title = "起点",
+            type = MarkerType.START
+        )
+        
+        val endMarker = MarkerData(
+            id = "route_end",
+            position = end,
+            title = "终点",
+            type = MarkerType.END
+        )
+        
+        val mapUpdate = if (routeResult != null) {
+            // 有路线结果：显示标记和路线
+            RouteMapUpdate.ShowRoute(
+                startMarker = startMarker,
+                endMarker = endMarker,
+                routeResult = routeResult
+            )
+        } else {
+            // 无路线结果：只显示标记
+            RouteMapUpdate.ShowMarkersOnly(
+                startMarker = startMarker,
+                endMarker = endMarker
+            )
+        }
+        
+        _uiState.update { it.copy(mapUpdate = mapUpdate) }
     }
     
     /**

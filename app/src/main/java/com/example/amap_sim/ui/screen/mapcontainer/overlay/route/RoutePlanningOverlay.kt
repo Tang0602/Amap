@@ -52,9 +52,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.amap_sim.domain.model.LatLng
-import com.example.amap_sim.domain.model.MarkerData
-import com.example.amap_sim.domain.model.MarkerType
 import com.example.amap_sim.domain.model.RouteResult
 import com.example.amap_sim.ui.screen.mapcontainer.MapStateController
 import com.example.amap_sim.ui.theme.AmapBlue
@@ -98,37 +95,24 @@ fun RoutePlanningOverlay(
         }
     }
     
-    // 当路线结果变化时，在地图上显示路线和标记
-    LaunchedEffect(uiState.routeResult, uiState.startLocation, uiState.endLocation) {
-        val start = uiState.startLocation.getLatLng()
-        val end = uiState.endLocation?.getLatLng()
-        
-        // 设置起点终点标记
-        val markers = mutableListOf<MarkerData>()
-        markers.add(
-            MarkerData(
-                id = "route_start",
-                position = start,
-                title = "起点",
-                type = MarkerType.START
-            )
-        )
-        if (end != null) {
-            markers.add(
-                MarkerData(
-                    id = "route_end",
-                    position = end,
-                    title = "终点",
-                    type = MarkerType.END
-                )
-            )
+    // 监听地图更新状态，应用 ViewModel 计算的地图操作
+    // UI 层只负责执行，不包含业务逻辑
+    LaunchedEffect(uiState.mapUpdate) {
+        when (val update = uiState.mapUpdate) {
+            null -> { /* 无更新 */ }
+            is RouteMapUpdate.Clear -> {
+                mapController.clearMarkers()
+                mapController.clearRoute()
+            }
+            is RouteMapUpdate.ShowRoute -> {
+                mapController.setMarkers(listOf(update.startMarker, update.endMarker))
+                mapController.setRoute(update.routeResult)
+            }
+            is RouteMapUpdate.ShowMarkersOnly -> {
+                mapController.setMarkers(listOf(update.startMarker, update.endMarker))
+                mapController.clearRoute()
+            }
         }
-        mapController.setMarkers(markers)
-        
-        // 显示路线
-        uiState.routeResult?.let { route ->
-            mapController.setRoute(route)
-        } ?: mapController.clearRoute()
     }
     
     // 监听导航事件

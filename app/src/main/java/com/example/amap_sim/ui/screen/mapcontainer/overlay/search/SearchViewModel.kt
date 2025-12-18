@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.amap_sim.data.local.OfflineSearchService
 import com.example.amap_sim.di.ServiceLocator
 import com.example.amap_sim.domain.model.LatLng
+import com.example.amap_sim.domain.model.MarkerData
+import com.example.amap_sim.domain.model.MarkerType
 import com.example.amap_sim.domain.model.PoiResult
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -15,6 +17,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 /**
@@ -48,6 +52,7 @@ class SearchViewModel : ViewModel() {
     
     init {
         initializeAndLoadData()
+        observeSearchResults()
     }
     
     /**
@@ -139,7 +144,8 @@ class SearchViewModel : ViewModel() {
                 it.copy(
                     showResults = false, 
                     searchResults = emptyList(),
-                    error = null
+                    error = null,
+                    mapUpdate = SearchMapUpdate.Clear // 清除地图标记
                 ) 
             }
             return
@@ -204,7 +210,8 @@ class SearchViewModel : ViewModel() {
                     it.copy(
                         searchResults = pois,
                         showResults = true,
-                        isLoading = false
+                        isLoading = false,
+                        mapUpdate = null // 由 observeSearchResults 自动计算
                     ) 
                 }
                 Log.d(TAG, "搜索 '$query' 完成，找到 ${pois.size} 条结果")
@@ -282,7 +289,8 @@ class SearchViewModel : ViewModel() {
                         it.copy(
                             searchResults = pois,
                             showResults = true,
-                            isLoading = false
+                            isLoading = false,
+                            mapUpdate = null // 由 observeSearchResults 自动计算
                         ) 
                     }
                     Log.d(TAG, "分类搜索 '$category' 完成，找到 ${pois.size} 条结果")
@@ -322,7 +330,8 @@ class SearchViewModel : ViewModel() {
                 searchResults = emptyList(),
                 showResults = false,
                 selectedCategory = null,
-                error = null
+                error = null,
+                mapUpdate = SearchMapUpdate.Clear // 清除地图标记
             ) 
         }
     }
@@ -375,6 +384,77 @@ class SearchViewModel : ViewModel() {
      */
     private fun clearError() {
         _uiState.update { it.copy(error = null) }
+    }
+    
+    /**
+     * 监听搜索结果变化，计算地图更新信息
+     * 
+     * 业务逻辑：将搜索结果转换为地图标记，并决定地图视图操作
+     */
+    private fun observeSearchResults() {
+        viewModelScope.launch {
+            _uiState
+                .map { it.searchResults }
+                .distinctUntilChanged()
+                .collect { results ->
+                    updateMapState(results)
+                }
+        }
+    }
+    
+    /**
+     * 更新地图状态
+     * 
+     * 根据搜索结果计算需要的地图更新操作
+     */
+    private fun updateMapState(results: List<PoiResult>) {
+        if (results.isEmpty()) {
+            _uiState.update { it.copy(mapUpdate = SearchMapUpdate.Clear) }
+            return
+        }
+        
+        // 将搜索结果转换为地图标记
+        val markers = results.map { poi ->
+            MarkerData(
+                id = "search_result_${poi.id}",
+                position = LatLng(poi.lat, poi.lon),
+                title = poi.name,
+                type = MarkerType.SEARCH_RESULT
+            )
+        }
+        
+        // 根据标记数量决定地图操作
+        val mapUpdate = when {
+            markers.size > 1 -> {
+                // 多个标记：适配边界框
+                val lats = markers.map { it.position.lat }
+                val lons = markers.map { it.position.lon }
+                SearchMapUpdate.ShowMarkers(
+                    markers = markers,
+                    fitBounds = true,
+                    bounds = SearchMapUpdate.Bounds(
+                        minLat = lats.min(),
+                        maxLat = lats.max(),
+                        minLon = lons.min(),
+                        maxLon = lons.max()
+                    )
+                )
+            }
+            markers.size == 1 -> {
+                // 单个标记：移动到该位置
+                SearchMapUpdate.ShowMarkers(
+                    markers = markers,
+                    moveToPosition = true,
+                    position = markers.first().position,
+                    zoomLevel = 16
+                )
+            }
+            else -> {
+                SearchMapUpdate.Clear
+            }
+        }
+        
+        _uiState.update { it.copy(mapUpdate = mapUpdate) }
     }
     
     override fun onCleared() {

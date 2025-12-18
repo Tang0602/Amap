@@ -5,12 +5,18 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.amap_sim.data.local.OfflineSearchService
 import com.example.amap_sim.di.ServiceLocator
+import com.example.amap_sim.domain.model.LatLng
+import com.example.amap_sim.domain.model.MarkerData
+import com.example.amap_sim.domain.model.MarkerType
+import com.example.amap_sim.domain.model.PoiResult
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 /**
@@ -34,6 +40,10 @@ class DetailViewModel : ViewModel() {
     // 当前 POI ID
     private var currentPoiId: String = ""
     
+    init {
+        observePoiChanges()
+    }
+    
     /**
      * 通过 ID 加载 POI 详情
      */
@@ -42,6 +52,50 @@ class DetailViewModel : ViewModel() {
             currentPoiId = id
             loadPoiDetail()
         }
+    }
+    
+    /**
+     * 监听 POI 变化，计算地图更新信息
+     * 
+     * 业务逻辑：将 POI 转换为地图标记，并决定地图定位操作
+     */
+    private fun observePoiChanges() {
+        viewModelScope.launch {
+            _uiState
+                .map { it.poi }
+                .distinctUntilChanged()
+                .collect { poi ->
+                    updateMapState(poi)
+                }
+        }
+    }
+    
+    /**
+     * 更新地图状态
+     * 
+     * 根据 POI 详情计算需要的地图更新操作
+     */
+    private fun updateMapState(poi: PoiResult?) {
+        if (poi == null) {
+            _uiState.update { it.copy(mapUpdate = DetailMapUpdate.Clear) }
+            return
+        }
+        
+        // 将 POI 转换为地图标记
+        val marker = MarkerData(
+            id = "detail_poi",
+            position = LatLng(poi.lat, poi.lon),
+            title = poi.name,
+            type = MarkerType.POI
+        )
+        
+        val mapUpdate = DetailMapUpdate.ShowPoi(
+            marker = marker,
+            position = LatLng(poi.lat, poi.lon),
+            zoomLevel = 16
+        )
+        
+        _uiState.update { it.copy(mapUpdate = mapUpdate) }
     }
     
     /**
@@ -87,7 +141,8 @@ class DetailViewModel : ViewModel() {
                             it.copy(
                                 isLoading = false,
                                 poi = poi,
-                                error = null
+                                error = null,
+                                mapUpdate = null // 由 observePoiChanges 自动计算
                             )
                         }
                         Log.d(TAG, "加载 POI 详情成功: ${poi.name}")
