@@ -94,20 +94,12 @@ data class NavigationUiState(
     
     /**
      * 获取地图标记点列表
+     * 
+     * 注意：当前位置标记通过 MapsforgeMapView 的 currentLocation 参数显示，
+     * 这里只包含其他标记点（如终点）
      */
     val markers: List<MarkerData>
         get() = buildList {
-            // 当前位置标记
-            add(
-                MarkerData(
-                    id = "current_location",
-                    position = currentLocation,
-                    title = "当前位置",
-                    type = MarkerType.CURRENT_LOCATION,
-                    anchorY = 0.5f
-                )
-            )
-            
             // 终点标记
             routeResult?.points?.lastOrNull()?.let { end ->
                 add(

@@ -119,6 +119,8 @@ private fun NavigationScreenContent(
                 zoomLevel = uiState.zoomLevel,
                 markers = uiState.markers,
                 routeResult = routeResult,
+                currentLocation = uiState.currentLocation,
+                showCurrentLocation = true,
                 commands = mapCommands,
                 onMapClick = { position ->
                     onEvent(NavigationEvent.MapClick(position))

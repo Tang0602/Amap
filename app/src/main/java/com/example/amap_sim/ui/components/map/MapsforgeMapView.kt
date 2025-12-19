@@ -435,6 +435,12 @@ private fun updateMarkers(
         }
     }
     
+    // 确保当前位置标记显示在最上层（如果存在）
+    state.currentLocationMarker?.let { currentLocationMarker ->
+        mapView.layerManager.layers.remove(currentLocationMarker)
+        mapView.layerManager.layers.add(currentLocationMarker)
+    }
+    
     mapView.layerManager.redrawLayers()
 }
 
@@ -549,8 +555,12 @@ private fun updateRoute(
     }
     state.routePolyline = null
     
-    // 如果没有新路线，直接返回
+    // 如果没有新路线，确保当前位置标记在最上层后返回
     if (routeResult == null || routeResult.points.isEmpty()) {
+        state.currentLocationMarker?.let { currentLocationMarker ->
+            mapView.layerManager.layers.remove(currentLocationMarker)
+            mapView.layerManager.layers.add(currentLocationMarker)
+        }
         mapView.layerManager.redrawLayers()
         return
     }
@@ -573,6 +583,12 @@ private fun updateRoute(
     // 添加到地图
     mapView.layerManager.layers.add(polyline)
     state.routePolyline = polyline
+    
+    // 确保当前位置标记显示在最上层（如果存在）
+    state.currentLocationMarker?.let { currentLocationMarker ->
+        mapView.layerManager.layers.remove(currentLocationMarker)
+        mapView.layerManager.layers.add(currentLocationMarker)
+    }
     
     mapView.layerManager.redrawLayers()
 }

@@ -139,15 +139,18 @@ fun NavigationControls(
         }
         
         // 结束导航按钮
-        SmallFloatingActionButton(
+        FloatingActionButton(
             onClick = onStop,
             containerColor = AmapRed.copy(alpha = 0.9f),
-            contentColor = Color.White
+            contentColor = Color.White,
+            elevation = FloatingActionButtonDefaults.elevation(
+                defaultElevation = 6.dp
+            )
         ) {
             Icon(
                 imageVector = Icons.Default.Close,
                 contentDescription = "结束导航",
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(28.dp)
             )
         }
     }
