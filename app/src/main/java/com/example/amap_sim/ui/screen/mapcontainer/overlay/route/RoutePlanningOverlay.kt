@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.DirectionsBike
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.SwapVert
@@ -74,14 +75,20 @@ fun RoutePlanningOverlay(
     destLon: Double? = null,
     destName: String? = null,
     initialProfile: TravelProfile? = null,
+    startLocation: LocationInput? = null,
+    waypoints: List<LocationInput>? = null,
+    endLocation: LocationInput? = null,
     mapController: MapStateController,
     onNavigateBack: () -> Unit,
     onNavigateToSearch: () -> Unit,
-    onNavigateToAddWaypoint: () -> Unit = {},
+    onNavigateToAddWaypoint: (LocationInput, List<LocationInput>, LocationInput?) -> Unit = { _, _, _ -> },
     onStartNavigation: (RouteResult) -> Unit,
     viewModel: RouteViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    
+    // 调试日志：记录接收到的参数
+    android.util.Log.d("RoutePlanningOverlay", "Recomposed with params: startLocation=$startLocation, waypoints.size=${waypoints?.size ?: "null"}, endLocation=$endLocation")
     
     // 初始化交通方式（如果从快捷入口进入）
     LaunchedEffect(initialProfile) {
@@ -97,6 +104,44 @@ fun RoutePlanningOverlay(
         }
     }
     
+    // 更新途径点（从添加途径点页面返回时）
+    // 使用参数组合作为 key，确保只在参数真正变化时触发
+    // 注意：waypoints 可能是空列表，所以需要特殊处理
+    val waypointsKey = waypoints?.let { 
+        // 使用列表的 size 和所有元素的 hashCode 组合作为 key
+        // 这样可以检测列表内容的变化，同时处理空列表的情况
+        "${it.size}_${it.map { it.hashCode() }.hashCode()}"
+    } ?: "null"
+    
+    // 创建一个组合 key 来检测所有参数的变化
+    val updateKey = "${startLocation?.hashCode()}_${waypointsKey}_${endLocation?.hashCode()}"
+    
+    LaunchedEffect(updateKey) {
+        // 检查是否有任何参数被设置（表示是从 AddWaypointOverlay 返回）
+        // 注意：waypoints 可能是空列表，所以不能简单地用 != null 判断
+        val hasStartLocation = startLocation != null
+        val hasWaypoints = waypoints != null // 即使是空列表，也是有效的
+        val hasEndLocation = endLocation != null
+        
+        android.util.Log.d("RoutePlanningOverlay", "LaunchedEffect triggered: updateKey=$updateKey")
+        android.util.Log.d("RoutePlanningOverlay", "hasStartLocation=$hasStartLocation, hasWaypoints=$hasWaypoints, hasEndLocation=$hasEndLocation")
+        android.util.Log.d("RoutePlanningOverlay", "waypoints: ${waypoints?.size ?: "null"}")
+        android.util.Log.d("RoutePlanningOverlay", "current uiState.waypoints.size: ${uiState.waypoints.size}")
+        
+        if (hasStartLocation || hasWaypoints || hasEndLocation) {
+            android.util.Log.d("RoutePlanningOverlay", "Calling UpdateWaypoints event")
+            viewModel.onEvent(
+                RouteEvent.UpdateWaypoints(
+                    startLocation = startLocation ?: uiState.startLocation,
+                    waypoints = waypoints ?: uiState.waypoints, // 如果 waypoints 是 null，使用当前状态
+                    endLocation = endLocation ?: uiState.endLocation
+                )
+            )
+        } else {
+            android.util.Log.d("RoutePlanningOverlay", "Skipping UpdateWaypoints: all parameters are null")
+        }
+    }
+    
     // 监听地图更新状态，应用 ViewModel 计算的地图操作
     // UI 层只负责执行，不包含业务逻辑
     LaunchedEffect(uiState.mapUpdate) {
@@ -107,11 +152,15 @@ fun RoutePlanningOverlay(
                 mapController.clearRoute()
             }
             is RouteMapUpdate.ShowRoute -> {
-                mapController.setMarkers(listOf(update.startMarker, update.endMarker))
+                // 显示起点、途径点和终点标记
+                val allMarkers = listOf(update.startMarker) + update.waypointMarkers + listOf(update.endMarker)
+                mapController.setMarkers(allMarkers)
                 mapController.setRoute(update.routeResult)
             }
             is RouteMapUpdate.ShowMarkersOnly -> {
-                mapController.setMarkers(listOf(update.startMarker, update.endMarker))
+                // 显示起点、途径点和终点标记（无路线）
+                val allMarkers = listOf(update.startMarker) + update.waypointMarkers + listOf(update.endMarker)
+                mapController.setMarkers(allMarkers)
                 mapController.clearRoute()
             }
         }
@@ -150,7 +199,7 @@ private fun RoutePlanningOverlayContent(
     uiState: RouteUiState,
     onEvent: (RouteEvent) -> Unit,
     onBack: () -> Unit,
-    onNavigateToAddWaypoint: () -> Unit
+    onNavigateToAddWaypoint: (LocationInput, List<LocationInput>, LocationInput?) -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         // 顶部面板
@@ -197,7 +246,7 @@ private fun TopPanel(
     uiState: RouteUiState,
     onEvent: (RouteEvent) -> Unit,
     onBack: () -> Unit,
-    onNavigateToAddWaypoint: () -> Unit,
+    onNavigateToAddWaypoint: (LocationInput, List<LocationInput>, LocationInput?) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -240,6 +289,7 @@ private fun TopPanel(
             ) {
                 LocationInputCard(
                     startLocation = uiState.startLocation,
+                    waypoints = uiState.waypoints,
                     endLocation = uiState.endLocation,
                     onStartClick = { onEvent(RouteEvent.ClickStartInput) },
                     onEndClick = { onEvent(RouteEvent.ClickEndInput) },
@@ -252,7 +302,13 @@ private fun TopPanel(
                 // 途径点按钮（在卡片外面右侧）
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.clickable(onClick = onNavigateToAddWaypoint)
+                    modifier = Modifier.clickable(onClick = {
+                        onNavigateToAddWaypoint(
+                            uiState.startLocation,
+                            uiState.waypoints,
+                            uiState.endLocation
+                        )
+                    })
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.AddCircleOutline,
@@ -284,6 +340,7 @@ private fun TopPanel(
 @Composable
 private fun LocationInputCard(
     startLocation: LocationInput,
+    waypoints: List<LocationInput>,
     endLocation: LocationInput?,
     onStartClick: () -> Unit,
     onEndClick: () -> Unit,
@@ -319,10 +376,40 @@ private fun LocationInputCard(
                     )
                 }
                 
+                // 途径点图标（如果有）
+                waypoints.forEach { _ ->
+                    Box(
+                        modifier = Modifier
+                            .width(2.dp)
+                            .height(12.dp)
+                            .background(Gray400.copy(alpha = 0.5f))
+                    )
+                    Box(
+                        modifier = Modifier
+                            .size(16.dp)
+                            .clip(CircleShape)
+                            .background(AmapBlue.copy(alpha = 0.7f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = null,
+                            modifier = Modifier.size(10.dp),
+                            tint = Color.White
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .width(2.dp)
+                            .height(12.dp)
+                            .background(Gray400.copy(alpha = 0.5f))
+                    )
+                }
+                
                 Box(
                     modifier = Modifier
                         .width(2.dp)
-                        .height(20.dp)
+                        .height(if (waypoints.isEmpty()) 20.dp else 12.dp)
                         .background(Gray400.copy(alpha = 0.5f))
                 )
                 
@@ -351,6 +438,19 @@ private fun LocationInputCard(
                     isCurrentLocation = startLocation is LocationInput.CurrentLocation,
                     onClick = onStartClick
                 )
+                
+                // 途径点输入框（如果有）
+                waypoints.forEachIndexed { index, waypoint ->
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 6.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    )
+                    LocationInputField(
+                        value = waypoint.getDisplayName(),
+                        placeholder = "途经点 ${index + 1}",
+                        onClick = { /* 途径点点击暂不处理 */ }
+                    )
+                }
                 
                 HorizontalDivider(
                     modifier = Modifier.padding(vertical = 6.dp),

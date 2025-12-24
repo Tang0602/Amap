@@ -63,25 +63,30 @@ class RouteViewModel : ViewModel() {
         viewModelScope.launch {
             combine(
                 uiState.map { it.startLocation },
+                uiState.map { it.waypoints },
                 uiState.map { it.endLocation },
                 uiState.map { it.routeResult }
-            ) { start: LocationInput, end: LocationInput?, route: RouteResult? ->
-                Triple(start, end, route)
+            ) { start: LocationInput, waypoints: List<LocationInput>, end: LocationInput?, route: RouteResult? ->
+                Quadruple(start, waypoints, end, route)
             }
                 .distinctUntilChanged()
-                .collect { (start, end, route) ->
-                    updateMapState(start, end, route)
+                .collect { (start, waypoints, end, route) ->
+                    updateMapState(start, waypoints, end, route)
                 }
         }
     }
     
+    // 辅助数据类
+    private data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
+    
     /**
      * 更新地图状态
      * 
-     * 根据起点、终点和路线结果计算需要的地图更新操作
+     * 根据起点、途径点、终点和路线结果计算需要的地图更新操作
      */
     private fun updateMapState(
         startLocation: LocationInput,
+        waypoints: List<LocationInput>,
         endLocation: LocationInput?,
         routeResult: RouteResult?
     ) {
@@ -94,7 +99,7 @@ class RouteViewModel : ViewModel() {
             return
         }
         
-        // 创建起点终点标记
+        // 创建起点标记
         val startMarker = MarkerData(
             id = "route_start",
             position = start,
@@ -102,6 +107,17 @@ class RouteViewModel : ViewModel() {
             type = MarkerType.START
         )
         
+        // 创建途径点标记
+        val waypointMarkers = waypoints.mapIndexed { index, waypoint ->
+            MarkerData(
+                id = "route_waypoint_$index",
+                position = waypoint.getLatLng(),
+                title = "途经点 ${index + 1}",
+                type = MarkerType.WAYPOINT
+            )
+        }
+        
+        // 创建终点标记
         val endMarker = MarkerData(
             id = "route_end",
             position = end,
@@ -113,6 +129,7 @@ class RouteViewModel : ViewModel() {
             // 有路线结果：显示标记和路线
             RouteMapUpdate.ShowRoute(
                 startMarker = startMarker,
+                waypointMarkers = waypointMarkers,
                 endMarker = endMarker,
                 routeResult = routeResult
             )
@@ -120,6 +137,7 @@ class RouteViewModel : ViewModel() {
             // 无路线结果：只显示标记
             RouteMapUpdate.ShowMarkersOnly(
                 startMarker = startMarker,
+                waypointMarkers = waypointMarkers,
                 endMarker = endMarker
             )
         }
@@ -156,6 +174,7 @@ class RouteViewModel : ViewModel() {
             RouteEvent.SwapLocations -> swapLocations()
             is RouteEvent.SetStartLocation -> setStartLocation(event.location)
             is RouteEvent.SetEndLocation -> setEndLocation(event.location)
+            is RouteEvent.UpdateWaypoints -> updateWaypoints(event.startLocation, event.waypoints, event.endLocation)
             RouteEvent.CalculateRoute -> calculateRoute()
             RouteEvent.ToggleInstructions -> toggleInstructions()
             RouteEvent.StartNavigation -> startNavigation()
@@ -262,12 +281,37 @@ class RouteViewModel : ViewModel() {
     }
     
     /**
+     * 更新途径点（从添加途径点页面返回后调用）
+     */
+    private fun updateWaypoints(
+        startLocation: LocationInput,
+        waypoints: List<LocationInput>,
+        endLocation: LocationInput?
+    ) {
+        Log.d(TAG, "updateWaypoints: startLocation=$startLocation, waypoints.size=${waypoints.size}, endLocation=$endLocation")
+        _uiState.update {
+            it.copy(
+                startLocation = startLocation,
+                waypoints = waypoints,
+                endLocation = endLocation,
+                routeResult = null
+            )
+        }
+        Log.d(TAG, "updateWaypoints: 状态已更新，waypoints.size=${_uiState.value.waypoints.size}")
+        // 如果终点已设置，自动计算路线
+        if (endLocation != null) {
+            calculateRoute()
+        }
+    }
+    
+    /**
      * 计算路线
      */
     private fun calculateRoute() {
         val currentState = _uiState.value
         val start = currentState.startLocation
         val end = currentState.endLocation ?: return
+        val waypoints = currentState.waypoints
         
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
@@ -292,13 +336,23 @@ class RouteViewModel : ViewModel() {
                 val endLatLng = end.getLatLng()
                 val profile = currentState.selectedProfile.profileId
                 
-                Log.d(TAG, "开始计算路线: $startLatLng -> $endLatLng, profile=$profile")
-                
-                val result = routingService.calculateRoute(
-                    start = startLatLng,
-                    end = endLatLng,
-                    profile = profile
-                )
+                val result = if (waypoints.isNotEmpty()) {
+                    // 有途径点，使用 calculateRouteWithWaypoints
+                    val allPoints = listOf(startLatLng) + waypoints.map { it.getLatLng() } + endLatLng
+                    Log.d(TAG, "开始计算路线（含途径点）: ${allPoints.size} 个点, profile=$profile")
+                    routingService.calculateRouteWithWaypoints(
+                        points = allPoints,
+                        profile = profile
+                    )
+                } else {
+                    // 无途径点，使用普通 calculateRoute
+                    Log.d(TAG, "开始计算路线: $startLatLng -> $endLatLng, profile=$profile")
+                    routingService.calculateRoute(
+                        start = startLatLng,
+                        end = endLatLng,
+                        profile = profile
+                    )
+                }
                 
                 if (result.isSuccess) {
                     val routeResult = result.getOrNull()

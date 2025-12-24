@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -149,6 +150,11 @@ fun MapContainerScreen(
                 },
                 label = "overlay_transition"
             ) { overlayState ->
+                // 添加调试日志
+                android.util.Log.d("MapContainerScreen", "AnimatedContent recomposed with overlayState: $overlayState")
+                if (overlayState is MapOverlayState.RoutePlanning) {
+                    android.util.Log.d("MapContainerScreen", "RoutePlanning params: startLocation=${overlayState.startLocation}, waypoints.size=${overlayState.waypoints?.size ?: "null"}, endLocation=${overlayState.endLocation}")
+                }
                 when (overlayState) {
                     is MapOverlayState.Home -> {
                         HomeOverlay(
@@ -183,24 +189,76 @@ fun MapContainerScreen(
                     }
                     
                     is MapOverlayState.RoutePlanning -> {
-                        RoutePlanningOverlay(
-                            destLat = overlayState.destLat,
-                            destLon = overlayState.destLon,
-                            destName = overlayState.destName,
-                            initialProfile = overlayState.initialProfile,
-                            mapController = viewModel,
-                            onNavigateBack = { viewModel.navigateBack() },
-                            onNavigateToSearch = { viewModel.openSearch() },
-                            onNavigateToAddWaypoint = { viewModel.openAddWaypoint() },
-                            onStartNavigation = { routeResult ->
-                                onNavigateToNavigation(routeResult)
-                            }
-                        )
+                        // 使用 key 来强制重新组合，确保参数变化时重新创建组件
+                        key(
+                            overlayState.startLocation?.hashCode(),
+                            overlayState.waypoints?.size ?: 0,
+                            overlayState.endLocation?.hashCode()
+                        ) {
+                            RoutePlanningOverlay(
+                                destLat = overlayState.destLat,
+                                destLon = overlayState.destLon,
+                                destName = overlayState.destName,
+                                initialProfile = overlayState.initialProfile,
+                                startLocation = overlayState.startLocation,
+                                waypoints = overlayState.waypoints,
+                                endLocation = overlayState.endLocation,
+                                mapController = viewModel,
+                                onNavigateBack = { viewModel.navigateBack() },
+                                onNavigateToSearch = { viewModel.openSearch() },
+                                onNavigateToAddWaypoint = { startLocation, waypoints, endLocation ->
+                                    viewModel.openAddWaypoint(startLocation, waypoints, endLocation)
+                                },
+                                onStartNavigation = { routeResult ->
+                                    onNavigateToNavigation(routeResult)
+                                }
+                            )
+                        }
                     }
                     
                     is MapOverlayState.AddWaypoint -> {
                         AddWaypointOverlay(
-                            onNavigateBack = { viewModel.navigateBack() }
+                            startLocation = overlayState.startLocation,
+                            waypoints = overlayState.waypoints,
+                            endLocation = overlayState.endLocation,
+                            onNavigateBack = { viewModel.navigateBack() },
+                            onComplete = { startLocation, waypoints, endLocation ->
+                                // 更新 RoutePlanning 状态并返回
+                                val currentState = viewModel.uiState.value
+                                val history = currentState.overlayHistory
+                                val previousState = history.lastOrNull()
+                                
+                                android.util.Log.d("MapContainerScreen", "onComplete called")
+                                android.util.Log.d("MapContainerScreen", "startLocation: $startLocation")
+                                android.util.Log.d("MapContainerScreen", "waypoints.size: ${waypoints.size}")
+                                android.util.Log.d("MapContainerScreen", "endLocation: $endLocation")
+                                android.util.Log.d("MapContainerScreen", "previousState: $previousState")
+                                
+                                if (previousState is MapOverlayState.RoutePlanning) {
+                                    // 创建更新后的 RoutePlanning 状态
+                                    // 使用传入的参数，即使 previousState 的参数是 null
+                                    val updatedRoutePlanning = previousState.copy(
+                                        startLocation = startLocation,
+                                        waypoints = waypoints,
+                                        endLocation = endLocation
+                                    )
+                                    
+                                    android.util.Log.d("MapContainerScreen", "updatedRoutePlanning.startLocation: ${updatedRoutePlanning.startLocation}")
+                                    android.util.Log.d("MapContainerScreen", "updatedRoutePlanning.waypoints.size: ${updatedRoutePlanning.waypoints?.size ?: "null"}")
+                                    android.util.Log.d("MapContainerScreen", "updatedRoutePlanning.endLocation: ${updatedRoutePlanning.endLocation}")
+                                    
+                                    // 直接导航到更新后的 RoutePlanning 状态
+                                    // 不添加到历史栈，因为这是返回到之前的状态
+                                    viewModel.navigateToOverlay(
+                                        updatedRoutePlanning,
+                                        addToHistory = false
+                                    )
+                                } else {
+                                    // 如果没有历史状态，直接返回
+                                    android.util.Log.d("MapContainerScreen", "No previous state, calling navigateBack")
+                                    viewModel.navigateBack()
+                                }
+                            }
                         )
                     }
                 }

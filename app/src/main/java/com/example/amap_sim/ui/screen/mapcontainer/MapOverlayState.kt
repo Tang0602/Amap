@@ -35,18 +35,32 @@ sealed class MapOverlayState {
      * @param destLon 目的地经度（可选）
      * @param destName 目的地名称（可选）
      * @param initialProfile 初始交通方式（可选）
+     * @param startLocation 起点位置（可选，用于从添加途径点页面返回时更新）
+     * @param waypoints 途径点列表（可选，用于从添加途径点页面返回时更新）
+     * @param endLocation 终点位置（可选，用于从添加途径点页面返回时更新）
      */
     data class RoutePlanning(
         val destLat: Double? = null,
         val destLon: Double? = null,
         val destName: String? = null,
-        val initialProfile: TravelProfile? = null
+        val initialProfile: TravelProfile? = null,
+        val startLocation: com.example.amap_sim.ui.screen.mapcontainer.overlay.route.LocationInput? = null,
+        val waypoints: List<com.example.amap_sim.ui.screen.mapcontainer.overlay.route.LocationInput>? = null,
+        val endLocation: com.example.amap_sim.ui.screen.mapcontainer.overlay.route.LocationInput? = null
     ) : MapOverlayState()
     
     /**
      * 添加途径点 Overlay - 途径点管理页面
+     * 
+     * @param startLocation 起点位置
+     * @param waypoints 已有途径点列表
+     * @param endLocation 终点位置
      */
-    data object AddWaypoint : MapOverlayState()
+    data class AddWaypoint(
+        val startLocation: com.example.amap_sim.ui.screen.mapcontainer.overlay.route.LocationInput = com.example.amap_sim.ui.screen.mapcontainer.overlay.route.LocationInput.CurrentLocation,
+        val waypoints: List<com.example.amap_sim.ui.screen.mapcontainer.overlay.route.LocationInput> = emptyList(),
+        val endLocation: com.example.amap_sim.ui.screen.mapcontainer.overlay.route.LocationInput? = null
+    ) : MapOverlayState()
     
     companion object {
         /**

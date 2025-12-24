@@ -9,6 +9,8 @@ import com.example.amap_sim.domain.model.RouteResult
 data class RouteUiState(
     /** 起点位置 */
     val startLocation: LocationInput = LocationInput.CurrentLocation,
+    /** 途径点列表 */
+    val waypoints: List<LocationInput> = emptyList(),
     /** 终点位置 */
     val endLocation: LocationInput? = null,
     /** 当前选中的交通方式 */
@@ -100,6 +102,8 @@ sealed class RouteMapUpdate {
     data class ShowRoute(
         /** 起点标记（已转换好的 MarkerData） */
         val startMarker: com.example.amap_sim.domain.model.MarkerData,
+        /** 途径点标记列表 */
+        val waypointMarkers: List<com.example.amap_sim.domain.model.MarkerData>,
         /** 终点标记（已转换好的 MarkerData） */
         val endMarker: com.example.amap_sim.domain.model.MarkerData,
         /** 路线结果 */
@@ -110,6 +114,8 @@ sealed class RouteMapUpdate {
     data class ShowMarkersOnly(
         /** 起点标记 */
         val startMarker: com.example.amap_sim.domain.model.MarkerData,
+        /** 途径点标记列表 */
+        val waypointMarkers: List<com.example.amap_sim.domain.model.MarkerData>,
         /** 终点标记 */
         val endMarker: com.example.amap_sim.domain.model.MarkerData
     ) : RouteMapUpdate()
@@ -129,6 +135,12 @@ sealed class RouteEvent {
     data class SetStartLocation(val location: LocationInput) : RouteEvent()
     /** 设置终点 */
     data class SetEndLocation(val location: LocationInput) : RouteEvent()
+    /** 更新途径点 */
+    data class UpdateWaypoints(
+        val startLocation: LocationInput,
+        val waypoints: List<LocationInput>,
+        val endLocation: LocationInput?
+    ) : RouteEvent()
     /** 计算路线 */
     data object CalculateRoute : RouteEvent()
     /** 切换显示指令详情 */

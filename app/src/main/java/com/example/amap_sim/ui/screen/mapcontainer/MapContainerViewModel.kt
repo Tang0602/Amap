@@ -43,16 +43,25 @@ class MapContainerViewModel : ViewModel(), MapStateController {
      * @param addToHistory 是否添加到历史栈（默认 true）
      */
     fun navigateToOverlay(newState: MapOverlayState, addToHistory: Boolean = true) {
+        android.util.Log.d("MapContainerViewModel", "navigateToOverlay called: newState=$newState, addToHistory=$addToHistory")
+        if (newState is MapOverlayState.RoutePlanning) {
+            android.util.Log.d("MapContainerViewModel", "RoutePlanning params: startLocation=${newState.startLocation}, waypoints.size=${newState.waypoints?.size ?: "null"}, endLocation=${newState.endLocation}")
+        }
         _uiState.update { current ->
             val newHistory = if (addToHistory && current.overlayState != newState) {
                 current.overlayHistory + current.overlayState
             } else {
                 current.overlayHistory
             }
-            current.copy(
+            val updated = current.copy(
                 overlayState = newState,
                 overlayHistory = newHistory
             )
+            android.util.Log.d("MapContainerViewModel", "State updated: overlayState=${updated.overlayState}")
+            if (updated.overlayState is MapOverlayState.RoutePlanning) {
+                android.util.Log.d("MapContainerViewModel", "Updated RoutePlanning params: startLocation=${updated.overlayState.startLocation}, waypoints.size=${updated.overlayState.waypoints?.size ?: "null"}, endLocation=${updated.overlayState.endLocation}")
+            }
+            updated
         }
     }
     
@@ -126,9 +135,17 @@ class MapContainerViewModel : ViewModel(), MapStateController {
     
     /**
      * 打开添加途径点 Overlay
+     * 
+     * @param startLocation 起点位置
+     * @param waypoints 已有途径点列表
+     * @param endLocation 终点位置
      */
-    fun openAddWaypoint() {
-        navigateToOverlay(MapOverlayState.AddWaypoint)
+    fun openAddWaypoint(
+        startLocation: com.example.amap_sim.ui.screen.mapcontainer.overlay.route.LocationInput = com.example.amap_sim.ui.screen.mapcontainer.overlay.route.LocationInput.CurrentLocation,
+        waypoints: List<com.example.amap_sim.ui.screen.mapcontainer.overlay.route.LocationInput> = emptyList(),
+        endLocation: com.example.amap_sim.ui.screen.mapcontainer.overlay.route.LocationInput? = null
+    ) {
+        navigateToOverlay(MapOverlayState.AddWaypoint(startLocation, waypoints, endLocation))
     }
     
     // ============== 地图生命周期 ==============
