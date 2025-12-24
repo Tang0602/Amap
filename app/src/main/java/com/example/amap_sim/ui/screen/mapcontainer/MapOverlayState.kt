@@ -43,6 +43,11 @@ sealed class MapOverlayState {
         val initialProfile: TravelProfile? = null
     ) : MapOverlayState()
     
+    /**
+     * 添加途径点 Overlay - 途径点管理页面
+     */
+    data object AddWaypoint : MapOverlayState()
+    
     companion object {
         /**
          * 默认状态

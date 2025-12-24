@@ -124,6 +124,13 @@ class MapContainerViewModel : ViewModel(), MapStateController {
         navigateToOverlay(MapOverlayState.RoutePlanning(destLat, destLon, destName, initialProfile))
     }
     
+    /**
+     * 打开添加途径点 Overlay
+     */
+    fun openAddWaypoint() {
+        navigateToOverlay(MapOverlayState.AddWaypoint)
+    }
+    
     // ============== 地图生命周期 ==============
     
     /**

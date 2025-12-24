@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.SwapVert
+import androidx.compose.material.icons.outlined.AddCircleOutline
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -76,6 +77,7 @@ fun RoutePlanningOverlay(
     mapController: MapStateController,
     onNavigateBack: () -> Unit,
     onNavigateToSearch: () -> Unit,
+    onNavigateToAddWaypoint: () -> Unit = {},
     onStartNavigation: (RouteResult) -> Unit,
     viewModel: RouteViewModel = viewModel()
 ) {
@@ -138,7 +140,8 @@ fun RoutePlanningOverlay(
             mapController.clearMarkers()
             mapController.clearRoute()
             onNavigateBack()
-        }
+        },
+        onNavigateToAddWaypoint = onNavigateToAddWaypoint
     )
 }
 
@@ -146,7 +149,8 @@ fun RoutePlanningOverlay(
 private fun RoutePlanningOverlayContent(
     uiState: RouteUiState,
     onEvent: (RouteEvent) -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onNavigateToAddWaypoint: () -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         // 顶部面板
@@ -154,6 +158,7 @@ private fun RoutePlanningOverlayContent(
             uiState = uiState,
             onEvent = onEvent,
             onBack = onBack,
+            onNavigateToAddWaypoint = onNavigateToAddWaypoint,
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .statusBarsPadding()
@@ -192,6 +197,7 @@ private fun TopPanel(
     uiState: RouteUiState,
     onEvent: (RouteEvent) -> Unit,
     onBack: () -> Unit,
+    onNavigateToAddWaypoint: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -225,14 +231,43 @@ private fun TopPanel(
                 )
             }
             
-            // 起点终点输入卡片
-            LocationInputCard(
-                startLocation = uiState.startLocation,
-                endLocation = uiState.endLocation,
-                onStartClick = { onEvent(RouteEvent.ClickStartInput) },
-                onEndClick = { onEvent(RouteEvent.ClickEndInput) },
-                onSwapClick = { onEvent(RouteEvent.SwapLocations) }
-            )
+            // 起点终点输入卡片和途径点按钮
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                LocationInputCard(
+                    startLocation = uiState.startLocation,
+                    endLocation = uiState.endLocation,
+                    onStartClick = { onEvent(RouteEvent.ClickStartInput) },
+                    onEndClick = { onEvent(RouteEvent.ClickEndInput) },
+                    onSwapClick = { onEvent(RouteEvent.SwapLocations) },
+                    modifier = Modifier.weight(1f)
+                )
+                
+                Spacer(modifier = Modifier.width(16.dp))
+
+                // 途径点按钮（在卡片外面右侧）
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.clickable(onClick = onNavigateToAddWaypoint)
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.AddCircleOutline,
+                        contentDescription = "添加途径点",
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(28.dp)
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "途径点",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
             
             // 交通方式选择
             TravelModeSelector(
@@ -252,12 +287,12 @@ private fun LocationInputCard(
     endLocation: LocationInput?,
     onStartClick: () -> Unit,
     onEndClick: () -> Unit,
-    onSwapClick: () -> Unit
+    onSwapClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+        modifier = modifier
+            .padding(vertical = 8.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         ),

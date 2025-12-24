@@ -31,6 +31,7 @@ import com.example.amap_sim.ui.screen.mapcontainer.components.MapControls
 import com.example.amap_sim.ui.screen.mapcontainer.overlay.detail.DetailOverlay
 import com.example.amap_sim.ui.screen.mapcontainer.overlay.home.HomeOverlay
 import com.example.amap_sim.ui.screen.mapcontainer.overlay.route.RoutePlanningOverlay
+import com.example.amap_sim.ui.screen.mapcontainer.overlay.waypoint.AddWaypointOverlay
 import com.example.amap_sim.ui.screen.mapcontainer.overlay.route.TravelProfile
 import com.example.amap_sim.ui.screen.mapcontainer.overlay.search.SearchOverlay
 import kotlinx.coroutines.flow.map
@@ -190,9 +191,16 @@ fun MapContainerScreen(
                             mapController = viewModel,
                             onNavigateBack = { viewModel.navigateBack() },
                             onNavigateToSearch = { viewModel.openSearch() },
+                            onNavigateToAddWaypoint = { viewModel.openAddWaypoint() },
                             onStartNavigation = { routeResult ->
                                 onNavigateToNavigation(routeResult)
                             }
+                        )
+                    }
+                    
+                    is MapOverlayState.AddWaypoint -> {
+                        AddWaypointOverlay(
+                            onNavigateBack = { viewModel.navigateBack() }
                         )
                     }
                 }
