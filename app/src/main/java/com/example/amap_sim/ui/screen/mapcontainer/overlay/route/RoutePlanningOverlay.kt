@@ -53,6 +53,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.amap_sim.domain.model.RouteResult
+import com.example.amap_sim.ui.navigation.NavigationStateHolder
 import com.example.amap_sim.ui.screen.mapcontainer.MapStateController
 import com.example.amap_sim.ui.theme.AmapBlue
 import com.example.amap_sim.ui.theme.AmapGreen
@@ -126,7 +127,14 @@ fun RoutePlanningOverlay(
                 }
                 RouteNavigationEvent.SelectStartFromSearch -> onNavigateToSearch()
                 RouteNavigationEvent.SelectEndFromSearch -> onNavigateToSearch()
-                is RouteNavigationEvent.StartNavigation -> onStartNavigation(event.routeResult)
+                is RouteNavigationEvent.StartNavigation -> {
+                    NavigationStateHolder.setRouteHistoryInfo(
+                        event.startLocation,
+                        event.endLocation,
+                        event.routeResult
+                    )
+                    onStartNavigation(event.routeResult)
+                }
             }
         }
     }

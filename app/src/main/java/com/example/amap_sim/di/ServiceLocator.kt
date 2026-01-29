@@ -5,6 +5,7 @@ import com.example.amap_sim.data.local.BRouterService
 import com.example.amap_sim.data.local.OfflineDataManager
 import com.example.amap_sim.data.local.OfflineRoutingService
 import com.example.amap_sim.data.local.OfflineSearchService
+import com.example.amap_sim.data.local.UserDataManager
 
 /**
  * 简单的服务定位器
@@ -32,6 +33,7 @@ object ServiceLocator {
     private var _brouterService: BRouterService? = null
     private var _graphHopperService: OfflineRoutingService? = null
     private var _searchService: OfflineSearchService? = null
+    private var _userDataManager: UserDataManager? = null
     
     /**
      * 数据管理器
@@ -66,6 +68,14 @@ object ServiceLocator {
         get() = _searchService ?: throw IllegalStateException(
             "ServiceLocator 未初始化，请先调用 initialize()"
         )
+
+    /**
+     * 用户数据管理
+     */
+    val userDataManager: UserDataManager
+        get() = _userDataManager ?: throw IllegalStateException(
+            "ServiceLocator 未初始化，请先调用 initialize()"
+        )
     
     /**
      * 检查是否使用 BRouter
@@ -84,12 +94,13 @@ object ServiceLocator {
         val appContext = context.applicationContext
         
         _dataManager = OfflineDataManager.getInstance(appContext)
-        
+
         // 根据配置和数据可用性选择路由引擎
         _brouterService = BRouterService(_dataManager!!)
         _graphHopperService = OfflineRoutingService(_dataManager!!)
-        
+
         _searchService = OfflineSearchService(_dataManager!!)
+        _userDataManager = UserDataManager(appContext)
         
         isInitialized = true
     }
@@ -112,6 +123,7 @@ object ServiceLocator {
         _brouterService = null
         _graphHopperService = null
         _searchService = null
+        _userDataManager = null
         
         isInitialized = false
     }

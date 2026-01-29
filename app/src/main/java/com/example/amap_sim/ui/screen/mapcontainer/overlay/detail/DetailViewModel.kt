@@ -29,7 +29,8 @@ class DetailViewModel : ViewModel() {
     }
     
     private val searchService: OfflineSearchService = ServiceLocator.searchService
-    
+    private val userDataManager = ServiceLocator.userDataManager
+
     private val _uiState = MutableStateFlow(DetailUiState())
     val uiState: StateFlow<DetailUiState> = _uiState.asStateFlow()
     
@@ -137,11 +138,14 @@ class DetailViewModel : ViewModel() {
                 if (result.isSuccess) {
                     val poi = result.getOrNull()
                     if (poi != null) {
+                        val favorites = userDataManager.getFavorites()
+                        val isFavorite = favorites.contains(currentPoiId)
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
                                 poi = poi,
                                 error = null,
+                                isFavorite = isFavorite,
                                 mapUpdate = null // 由 observePoiChanges 自动计算
                             )
                         }
@@ -182,7 +186,10 @@ class DetailViewModel : ViewModel() {
             DetailEvent.NavigateBack -> navigateBack()
             DetailEvent.NavigateTo -> navigateToPoi()
             DetailEvent.ToggleFavorite -> toggleFavorite()
-            DetailEvent.CallPhone -> callPhone()
+            DetailEvent.CallPhone -> showPhoneDialog()
+            DetailEvent.ConfirmCallPhone -> confirmCallPhone()
+            DetailEvent.DismissPhoneDialog -> dismissPhoneDialog()
+            DetailEvent.DismissCallSuccess -> dismissCallSuccess()
             DetailEvent.Share -> sharePoi()
             DetailEvent.ViewOnMap -> viewOnMap()
         }
@@ -217,8 +224,16 @@ class DetailViewModel : ViewModel() {
      * 切换收藏状态
      */
     private fun toggleFavorite() {
-        _uiState.update { it.copy(isFavorite = !it.isFavorite) }
-        // TODO: 持久化收藏状态
+        viewModelScope.launch {
+            val newFavoriteState = !_uiState.value.isFavorite
+            _uiState.update { it.copy(isFavorite = newFavoriteState) }
+
+            if (newFavoriteState) {
+                userDataManager.addFavorite(currentPoiId)
+            } else {
+                userDataManager.removeFavorite(currentPoiId)
+            }
+        }
     }
     
     /**
@@ -229,6 +244,34 @@ class DetailViewModel : ViewModel() {
         viewModelScope.launch {
             _navigationEvent.emit(DetailNavigationEvent.MakePhoneCall(phone))
         }
+    }
+
+    /**
+     * 显示电话确认对话框
+     */
+    private fun showPhoneDialog() {
+        _uiState.update { it.copy(showPhoneDialog = true) }
+    }
+
+    /**
+     * 确认拨打电话
+     */
+    private fun confirmCallPhone() {
+        _uiState.update { it.copy(showPhoneDialog = false, showCallSuccess = true) }
+    }
+
+    /**
+     * 取消拨打电话
+     */
+    private fun dismissPhoneDialog() {
+        _uiState.update { it.copy(showPhoneDialog = false) }
+    }
+
+    /**
+     * 关闭拨打成功提示
+     */
+    private fun dismissCallSuccess() {
+        _uiState.update { it.copy(showCallSuccess = false) }
     }
     
     /**

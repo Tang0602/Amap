@@ -19,7 +19,15 @@ data class PoiResult(
     /** 电话（可选） */
     val phone: String? = null,
     /** 距离（米，搜索时计算） */
-    val distance: Double? = null
+    val distance: Double? = null,
+    /** 开放时间 */
+    val openingHours: String? = null,
+    /** 景点简介 */
+    val description: String? = null,
+    /** 行车时间 */
+    val travelTime: String? = null,
+    /** 评分 */
+    val rating: Double? = null
 ) {
     /**
      * 获取坐标

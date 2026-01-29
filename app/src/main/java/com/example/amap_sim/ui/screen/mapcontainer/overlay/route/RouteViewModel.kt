@@ -344,8 +344,10 @@ class RouteViewModel : ViewModel() {
      */
     private fun startNavigation() {
         val routeResult = _uiState.value.routeResult ?: return
+        val startLocation = _uiState.value.startLocation
+        val endLocation = _uiState.value.endLocation ?: return
         viewModelScope.launch {
-            _navigationEvent.emit(RouteNavigationEvent.StartNavigation(routeResult))
+            _navigationEvent.emit(RouteNavigationEvent.StartNavigation(routeResult, startLocation, endLocation))
         }
     }
     

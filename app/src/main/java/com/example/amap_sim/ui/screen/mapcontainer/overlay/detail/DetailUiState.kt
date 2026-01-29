@@ -15,7 +15,11 @@ data class DetailUiState(
     /** 是否已收藏 */
     val isFavorite: Boolean = false,
     /** 地图更新信息（由 ViewModel 计算） */
-    val mapUpdate: DetailMapUpdate? = null
+    val mapUpdate: DetailMapUpdate? = null,
+    /** 是否显示电话确认对话框 */
+    val showPhoneDialog: Boolean = false,
+    /** 是否显示拨打成功提示 */
+    val showCallSuccess: Boolean = false
 )
 
 /**
@@ -50,6 +54,12 @@ sealed class DetailEvent {
     data object ToggleFavorite : DetailEvent()
     /** 拨打电话 */
     data object CallPhone : DetailEvent()
+    /** 确认拨打电话 */
+    data object ConfirmCallPhone : DetailEvent()
+    /** 取消拨打电话 */
+    data object DismissPhoneDialog : DetailEvent()
+    /** 关闭拨打成功提示 */
+    data object DismissCallSuccess : DetailEvent()
     /** 分享 */
     data object Share : DetailEvent()
     /** 在地图上查看 */

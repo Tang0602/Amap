@@ -41,6 +41,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -73,6 +75,7 @@ fun DetailOverlay(
     mapController: MapStateController,
     onNavigateBack: () -> Unit,
     onNavigateToRoute: (Double, Double, String) -> Unit,
+    onNavigateToNearby: (Double, Double, String) -> Unit = { _, _, _ -> },
     viewModel: DetailViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -138,7 +141,8 @@ fun DetailOverlay(
         onBack = {
             mapController.clearMarkers()
             onNavigateBack()
-        }
+        },
+        onNavigateToNearby = onNavigateToNearby
     )
 }
 
@@ -146,7 +150,8 @@ fun DetailOverlay(
 private fun DetailOverlayContent(
     uiState: DetailUiState,
     onEvent: (DetailEvent) -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onNavigateToNearby: (Double, Double, String) -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         // 顶部返回按钮
@@ -156,7 +161,7 @@ private fun DetailOverlayContent(
                 .align(Alignment.TopStart)
                 .statusBarsPadding()
         )
-        
+
         // 底部详情卡片
         when {
             uiState.isLoading -> {
@@ -177,10 +182,44 @@ private fun DetailOverlayContent(
                     poi = uiState.poi,
                     isFavorite = uiState.isFavorite,
                     onEvent = onEvent,
+                    onNavigateToNearby = onNavigateToNearby,
                     modifier = Modifier.align(Alignment.BottomCenter)
                 )
             }
         }
+    }
+
+    // 电话确认对话框
+    if (uiState.showPhoneDialog) {
+        AlertDialog(
+            onDismissRequest = { onEvent(DetailEvent.DismissPhoneDialog) },
+            title = { Text("拨打电话") },
+            text = { Text("是否拨打电话 ${uiState.poi?.phone ?: ""}？") },
+            confirmButton = {
+                TextButton(onClick = { onEvent(DetailEvent.ConfirmCallPhone) }) {
+                    Text("确认")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { onEvent(DetailEvent.DismissPhoneDialog) }) {
+                    Text("取消")
+                }
+            }
+        )
+    }
+
+    // 拨打成功提示
+    if (uiState.showCallSuccess) {
+        AlertDialog(
+            onDismissRequest = { onEvent(DetailEvent.DismissCallSuccess) },
+            title = { Text("提示") },
+            text = { Text("拨打成功") },
+            confirmButton = {
+                TextButton(onClick = { onEvent(DetailEvent.DismissCallSuccess) }) {
+                    Text("确定")
+                }
+            }
+        )
     }
 }
 
@@ -224,6 +263,7 @@ private fun PoiDetailCard(
     poi: PoiResult,
     isFavorite: Boolean,
     onEvent: (DetailEvent) -> Unit,
+    onNavigateToNearby: (Double, Double, String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val clipboardManager = LocalClipboardManager.current
@@ -270,7 +310,7 @@ private fun PoiDetailCard(
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
-                
+
                 poi.getFormattedDistance()?.let { distance ->
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
@@ -278,6 +318,48 @@ private fun PoiDetailCard(
                         style = MaterialTheme.typography.bodySmall,
                         color = Gray500
                     )
+                }
+            }
+
+            // 评分
+            poi.rating?.let { rating ->
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(4.dp),
+                        color = AmapBlue
+                    ) {
+                        Text(
+                            text = String.format("%.1f", rating),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "超棒",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Gray500
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // 驾车距离和时间
+            poi.getFormattedDistance()?.let { distance ->
+                poi.travelTime?.let { time ->
+                    Text(
+                        text = "驾车 $distance $time",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
             }
             
@@ -305,6 +387,43 @@ private fun PoiDetailCard(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 开放时间
+            poi.openingHours?.takeIf { it.isNotBlank() }?.let { hours ->
+                Text(
+                    text = "开放时间",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = hours,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Gray500
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
+            // 景点简介
+            poi.description?.takeIf { it.isNotBlank() }?.let { desc ->
+                Text(
+                    text = "景点简介",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = desc,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Gray500,
+                    lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.5f
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
             
             Spacer(modifier = Modifier.height(16.dp))
             
@@ -316,6 +435,45 @@ private fun PoiDetailCard(
                 onToggleFavorite = { onEvent(DetailEvent.ToggleFavorite) },
                 onShare = { onEvent(DetailEvent.Share) }
             )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 周边和路线按钮
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedButton(
+                    onClick = {
+                        android.util.Log.d("DetailOverlay", "周边按钮点击: POI ID=${poi.id}, name=${poi.name}")
+                        onNavigateToNearby(poi.lat, poi.lon, poi.id.toString())
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(44.dp),
+                    shape = RoundedCornerShape(22.dp)
+                ) {
+                    Text(
+                        text = "周边",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
+                OutlinedButton(
+                    onClick = { onEvent(DetailEvent.NavigateTo) },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(44.dp),
+                    shape = RoundedCornerShape(22.dp)
+                ) {
+                    Text(
+                        text = "路线",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
         }
     }
 }
