@@ -24,12 +24,17 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.amap_sim.domain.model.LatLng
+import com.example.amap_sim.domain.model.PoiResult
 import com.example.amap_sim.domain.model.RouteResult
 import com.example.amap_sim.ui.components.map.MapCommand
 import com.example.amap_sim.ui.components.map.MapsforgeMapView
+import com.example.amap_sim.ui.navigation.NavigationStateHolder
 import com.example.amap_sim.ui.screen.mapcontainer.components.MapControls
 import com.example.amap_sim.ui.screen.mapcontainer.overlay.detail.DetailOverlay
+import com.example.amap_sim.ui.screen.mapcontainer.overlay.favorites.FavoritesOverlay
 import com.example.amap_sim.ui.screen.mapcontainer.overlay.home.HomeOverlay
+import com.example.amap_sim.ui.screen.mapcontainer.overlay.nearby.NearbyOverlay
 import com.example.amap_sim.ui.screen.mapcontainer.overlay.route.RoutePlanningOverlay
 import com.example.amap_sim.ui.screen.mapcontainer.overlay.route.TravelProfile
 import com.example.amap_sim.ui.screen.mapcontainer.overlay.search.SearchOverlay
@@ -59,7 +64,14 @@ fun MapContainerScreen(
     BackHandler(enabled = uiState.canGoBack) {
         viewModel.navigateBack()
     }
-    
+
+    // 检查是否需要打开收藏夹
+    LaunchedEffect(Unit) {
+        if (NavigationStateHolder.consumeShouldOpenFavorites()) {
+            viewModel.openFavorites()
+        }
+    }
+
     // 显示错误信息
     LaunchedEffect(uiState.error) {
         uiState.error?.let { error ->
@@ -153,6 +165,7 @@ fun MapContainerScreen(
                         HomeOverlay(
                             mapController = viewModel,
                             onNavigateToSearch = { viewModel.openSearch() },
+                            onNavigateToNearby = { viewModel.openNearby() },
                             onNavigateToDrive = { viewModel.openRoutePlanning(initialProfile = TravelProfile.CAR) },
                             onNavigateToBike = { viewModel.openRoutePlanning(initialProfile = TravelProfile.BIKE) },
                             onNavigateToWalk = { viewModel.openRoutePlanning(initialProfile = TravelProfile.FOOT) },
@@ -177,6 +190,9 @@ fun MapContainerScreen(
                             onNavigateBack = { viewModel.navigateBack() },
                             onNavigateToRoute = { lat, lon, name ->
                                 viewModel.openRoutePlanning(lat, lon, name)
+                            },
+                            onNavigateToNearby = { lat, lon, poiId ->
+                                viewModel.openNearbyWithCenter(lat, lon, poiId)
                             }
                         )
                     }
@@ -193,6 +209,40 @@ fun MapContainerScreen(
                             onStartNavigation = { routeResult ->
                                 onNavigateToNavigation(routeResult)
                             }
+                        )
+                    }
+
+                    is MapOverlayState.Favorites -> {
+                        FavoritesOverlay(
+                            onNavigateBack = { viewModel.navigateBack() },
+                            onNavigateToDetail = { poiId ->
+                                viewModel.openPoiDetail(poiId)
+                            }
+                        )
+                    }
+
+                    is MapOverlayState.Nearby -> {
+                        NearbyOverlay(
+                            onClose = { viewModel.navigateBack() },
+                            onPoiSelected = { poi: PoiResult ->
+                                viewModel.openPoiDetail(poi.id.toString())
+                            },
+                            onSearchTriggered = {
+                                // 如果有指定中心点，使用指定的；否则使用当前位置
+                                val center = if (overlayState.centerLat != null && overlayState.centerLon != null) {
+                                    LatLng(overlayState.centerLat, overlayState.centerLon)
+                                } else {
+                                    viewModel.getCurrentLocation()
+                                }
+                                center?.let { location: LatLng ->
+                                    viewModel.searchNearby(location)
+                                }
+                            },
+                            mapController = viewModel,
+                            initialCenter = if (overlayState.centerLat != null && overlayState.centerLon != null) {
+                                LatLng(overlayState.centerLat, overlayState.centerLon)
+                            } else null,
+                            excludePoiId = overlayState.excludePoiId
                         )
                     }
                 }

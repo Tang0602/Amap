@@ -197,7 +197,8 @@ class OfflineSearchService(
             // FTS 搜索（匹配名称或地址）
             val ftsQuery = """
                 SELECT p.${Columns.ID}, p.${Columns.NAME}, p.${Columns.MAIN_CATEGORY},
-                       p.${Columns.LAT}, p.${Columns.LON}, p.${Columns.ADDRESS}, p.${Columns.PHONE}
+                       p.${Columns.LAT}, p.${Columns.LON}, p.${Columns.ADDRESS}, p.${Columns.PHONE},
+                       p.opening_hours, p.description, p.travel_time, p.rating
                 FROM ${Tables.POI} p
                 INNER JOIN ${Tables.POI_FTS} f ON p.${Columns.ID} = f.rowid
                 WHERE ${Tables.POI_FTS} MATCH ?
@@ -238,7 +239,8 @@ class OfflineSearchService(
         
         val query = """
             SELECT ${Columns.ID}, ${Columns.NAME}, ${Columns.MAIN_CATEGORY},
-                   ${Columns.LAT}, ${Columns.LON}, ${Columns.ADDRESS}, ${Columns.PHONE}
+                   ${Columns.LAT}, ${Columns.LON}, ${Columns.ADDRESS}, ${Columns.PHONE},
+                   opening_hours, description, travel_time, rating
             FROM ${Tables.POI}
             WHERE (${Columns.NAME} LIKE ? OR ${Columns.ADDRESS} LIKE ?)
             $excludeClause
@@ -333,7 +335,8 @@ class OfflineSearchService(
             // 简化查询（不使用 SQLite 的数学函数，改为在代码中计算距离）
             val simpleQuery = """
                 SELECT ${Columns.ID}, ${Columns.NAME}, ${Columns.MAIN_CATEGORY},
-                       ${Columns.LAT}, ${Columns.LON}, ${Columns.ADDRESS}, ${Columns.PHONE}
+                       ${Columns.LAT}, ${Columns.LON}, ${Columns.ADDRESS}, ${Columns.PHONE},
+                       opening_hours, description, travel_time, rating
                 FROM ${Tables.POI}
                 WHERE ${Columns.LAT} BETWEEN ? AND ?
                   AND ${Columns.LON} BETWEEN ? AND ?
@@ -351,9 +354,11 @@ class OfflineSearchService(
             }
             
             db.rawQuery(simpleQuery, simpleArgs.toTypedArray()).use { cursor ->
+                Log.d(TAG, "数据库查询返回 ${cursor.count} 条记录")
                 while (cursor.moveToNext()) {
                     val poi = cursorToPoi(cursor)
                     val distance = center.distanceTo(poi.location)
+                    Log.d(TAG, "  POI: ${poi.name} at (${poi.lat}, ${poi.lon}), distance=${distance}m")
                     if (distance <= radius) {
                         results.add(poi.copy(distance = distance))
                     }
@@ -394,7 +399,8 @@ class OfflineSearchService(
             
             val query = """
                 SELECT ${Columns.ID}, ${Columns.NAME}, ${Columns.MAIN_CATEGORY},
-                       ${Columns.LAT}, ${Columns.LON}, ${Columns.ADDRESS}, ${Columns.PHONE}
+                       ${Columns.LAT}, ${Columns.LON}, ${Columns.ADDRESS}, ${Columns.PHONE},
+                       opening_hours, description, travel_time, rating
                 FROM ${Tables.POI}
                 WHERE ${Columns.MAIN_CATEGORY} = ?
                 LIMIT ?
@@ -500,7 +506,8 @@ class OfflineSearchService(
             
             val query = """
                 SELECT ${Columns.ID}, ${Columns.NAME}, ${Columns.MAIN_CATEGORY},
-                       ${Columns.LAT}, ${Columns.LON}, ${Columns.ADDRESS}, ${Columns.PHONE}
+                       ${Columns.LAT}, ${Columns.LON}, ${Columns.ADDRESS}, ${Columns.PHONE},
+                       opening_hours, description, travel_time, rating
                 FROM ${Tables.POI}
                 WHERE ${Columns.ID} = ?
             """.trimIndent()
@@ -553,8 +560,20 @@ class OfflineSearchService(
             lat = cursor.getDouble(cursor.getColumnIndexOrThrow(Columns.LAT)),
             lon = cursor.getDouble(cursor.getColumnIndexOrThrow(Columns.LON)),
             address = cursor.getStringOrNull(Columns.ADDRESS),
-            phone = cursor.getStringOrNull(Columns.PHONE)
+            phone = cursor.getStringOrNull(Columns.PHONE),
+            openingHours = cursor.getStringOrNull("opening_hours"),
+            description = cursor.getStringOrNull("description"),
+            travelTime = cursor.getStringOrNull("travel_time"),
+            rating = cursor.getDoubleOrNull("rating")
         )
+    }
+
+    /**
+     * 安全获取Double列（可能为 null）
+     */
+    private fun Cursor.getDoubleOrNull(columnName: String): Double? {
+        val index = getColumnIndex(columnName)
+        return if (index >= 0 && !isNull(index)) getDouble(index) else null
     }
     
     /**

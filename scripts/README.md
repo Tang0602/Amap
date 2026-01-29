@@ -38,6 +38,7 @@ pip3 install osmium
 
 ```bash
 cd scripts
+
 ./prepare_all.sh
 ```
 

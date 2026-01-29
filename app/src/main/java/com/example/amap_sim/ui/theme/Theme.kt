@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+import com.example.amap_sim.data.local.AppTheme
 
 /**
  * 亮色主题
@@ -77,26 +78,62 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 /**
+ * 护眼模式主题（灰色主题）
+ */
+private val EyeCareColorScheme = lightColorScheme(
+    primary = md_theme_eyecare_primary,
+    onPrimary = md_theme_eyecare_onPrimary,
+    primaryContainer = md_theme_eyecare_primaryContainer,
+    onPrimaryContainer = md_theme_eyecare_onPrimaryContainer,
+    secondary = md_theme_eyecare_secondary,
+    onSecondary = md_theme_eyecare_onSecondary,
+    secondaryContainer = md_theme_eyecare_secondaryContainer,
+    onSecondaryContainer = md_theme_eyecare_onSecondaryContainer,
+    tertiary = md_theme_eyecare_tertiary,
+    onTertiary = md_theme_eyecare_onTertiary,
+    tertiaryContainer = md_theme_eyecare_tertiaryContainer,
+    onTertiaryContainer = md_theme_eyecare_onTertiaryContainer,
+    error = md_theme_eyecare_error,
+    onError = md_theme_eyecare_onError,
+    errorContainer = md_theme_eyecare_errorContainer,
+    onErrorContainer = md_theme_eyecare_onErrorContainer,
+    background = md_theme_eyecare_background,
+    onBackground = md_theme_eyecare_onBackground,
+    surface = md_theme_eyecare_surface,
+    onSurface = md_theme_eyecare_onSurface,
+    surfaceVariant = md_theme_eyecare_surfaceVariant,
+    onSurfaceVariant = md_theme_eyecare_onSurfaceVariant,
+    outline = md_theme_eyecare_outline,
+    outlineVariant = md_theme_eyecare_outlineVariant
+)
+
+/**
  * 仿高德地图主题
- * 
- * @param darkTheme 是否使用暗色主题
+ *
+ * @param appTheme 应用主题（明亮模式、夜间模式、护眼模式）
  * @param dynamicColor 是否使用动态颜色（Android 12+）
  */
 @Composable
 fun AmapSimTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    appTheme: AppTheme = AppTheme.BRIGHT,
     dynamicColor: Boolean = false, // 默认关闭，保持高德风格
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            when (appTheme) {
+                AppTheme.NIGHT -> dynamicDarkColorScheme(context)
+                else -> dynamicLightColorScheme(context)
+            }
         }
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+        else -> when (appTheme) {
+            AppTheme.BRIGHT -> LightColorScheme
+            AppTheme.NIGHT -> DarkColorScheme
+            AppTheme.EYE_CARE -> EyeCareColorScheme
+        }
     }
-    
+
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
@@ -104,7 +141,7 @@ fun AmapSimTheme(
             // 设置状态栏颜色
             window.statusBarColor = Color.Transparent.toArgb()
             // 设置状态栏图标颜色
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = appTheme != AppTheme.NIGHT
         }
     }
 

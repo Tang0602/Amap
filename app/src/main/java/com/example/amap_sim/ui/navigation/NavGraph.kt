@@ -16,10 +16,16 @@ import androidx.navigation.navArgument
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Navigation
+import androidx.compose.runtime.rememberCoroutineScope
+import com.example.amap_sim.di.ServiceLocator
+import com.example.amap_sim.domain.model.RouteHistory
 import com.example.amap_sim.ui.screen.common.UnderConstructionScreen
 import com.example.amap_sim.ui.screen.mapcontainer.MapContainerScreen
 import com.example.amap_sim.ui.screen.navigation.NavigationScreen
+import com.example.amap_sim.ui.screen.profile.ProfileScreen
 import com.example.amap_sim.ui.screen.splash.SplashScreen
+import kotlinx.coroutines.launch
+import java.util.UUID
 
 /**
  * 应用导航图
@@ -34,6 +40,9 @@ fun AmapNavGraph(
     navController: NavHostController = rememberNavController(),
     startDestination: String = Screen.Splash.route
 ) {
+    val scope = rememberCoroutineScope()
+    val userDataManager = ServiceLocator.userDataManager
+
     NavHost(
         navController = navController,
         startDestination = startDestination,
@@ -71,6 +80,23 @@ fun AmapNavGraph(
         ) {
             MapContainerScreen(
                 onNavigateToNavigation = { routeResult ->
+                    // 保存路线历史
+                    val historyInfo = NavigationStateHolder.consumeRouteHistoryInfo()
+                    if (historyInfo != null) {
+                        scope.launch {
+                            val history = RouteHistory(
+                                id = UUID.randomUUID().toString(),
+                                startName = historyInfo.startLocation.getDisplayName(),
+                                startLocation = historyInfo.startLocation.getLatLng(),
+                                endName = historyInfo.endLocation.getDisplayName(),
+                                endLocation = historyInfo.endLocation.getLatLng(),
+                                timestamp = System.currentTimeMillis(),
+                                distance = historyInfo.routeResult.distance,
+                                duration = (historyInfo.routeResult.time / 1000).toInt()
+                            )
+                            userDataManager.addRouteHistory(history)
+                        }
+                    }
                     // 将路线结果存储到 NavigationStateHolder
                     NavigationStateHolder.setRouteForNavigation(routeResult)
                     // 跳转到导航页
@@ -126,7 +152,7 @@ fun AmapNavGraph(
             }
         }
         
-        // 更多功能页（开发中）
+        // 更多功能页（我的页面）
         composable(
             route = Screen.More.route,
             enterTransition = {
@@ -142,11 +168,12 @@ fun AmapNavGraph(
                 )
             }
         ) {
-            UnderConstructionScreen(
-                title = "更多",
-                description = "更多精彩功能正在开发中，敬请期待！",
-                icon = Icons.Default.MoreHoriz,
-                onNavigateBack = { navController.popBackStack() }
+            ProfileScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToFavorites = {
+                    navController.popBackStack()
+                    NavigationStateHolder.setShouldOpenFavorites(true)
+                }
             )
         }
     }

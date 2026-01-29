@@ -90,10 +90,17 @@ interface MapStateController {
      * 移动到当前位置
      */
     fun moveToCurrentLocation()
-    
+
+    /**
+     * 获取当前位置
+     *
+     * @return 当前位置，如果未设置则返回 null
+     */
+    fun getCurrentLocation(): LatLng?
+
     /**
      * 设置当前位置
-     * 
+     *
      * @param location 当前位置
      */
     fun setCurrentLocation(location: LatLng)

@@ -38,11 +38,12 @@ class MapContainerViewModel : ViewModel(), MapStateController {
     
     /**
      * 切换到指定 Overlay
-     * 
+     *
      * @param newState 新的 Overlay 状态
      * @param addToHistory 是否添加到历史栈（默认 true）
      */
     fun navigateToOverlay(newState: MapOverlayState, addToHistory: Boolean = true) {
+        android.util.Log.d("MapContainerViewModel", "navigateToOverlay: $newState")
         _uiState.update { current ->
             val newHistory = if (addToHistory && current.overlayState != newState) {
                 current.overlayHistory + current.overlayState
@@ -116,12 +117,46 @@ class MapContainerViewModel : ViewModel(), MapStateController {
      * @param initialProfile 初始交通方式（可选）
      */
     fun openRoutePlanning(
-        destLat: Double? = null, 
-        destLon: Double? = null, 
+        destLat: Double? = null,
+        destLon: Double? = null,
         destName: String? = null,
         initialProfile: TravelProfile? = null
     ) {
         navigateToOverlay(MapOverlayState.RoutePlanning(destLat, destLon, destName, initialProfile))
+    }
+
+    /**
+     * 打开收藏夹 Overlay
+     */
+    fun openFavorites() {
+        navigateToOverlay(MapOverlayState.Favorites)
+    }
+
+    /**
+     * 打开周边搜索 Overlay
+     */
+    fun openNearby() {
+        android.util.Log.d("MapContainerViewModel", "openNearby() called")
+        navigateToOverlay(MapOverlayState.Nearby())
+    }
+
+    /**
+     * 打开周边搜索 Overlay（指定中心点）
+     */
+    fun openNearbyWithCenter(lat: Double, lon: Double, excludePoiId: String? = null) {
+        android.util.Log.d("MapContainerViewModel", "openNearbyWithCenter($lat, $lon, excludePoiId=$excludePoiId) called")
+        navigateToOverlay(MapOverlayState.Nearby(lat, lon, excludePoiId))
+    }
+
+    /**
+     * 执行周边搜索
+     */
+    fun searchNearby(center: LatLng) {
+        // 通过 NearbyViewModel 处理搜索逻辑
+        // 这里只需要确保 Overlay 已打开
+        if (_uiState.value.overlayState !is MapOverlayState.Nearby) {
+            openNearby()
+        }
     }
     
     // ============== 地图生命周期 ==============
@@ -253,13 +288,17 @@ class MapContainerViewModel : ViewModel(), MapStateController {
         val currentLocation = _uiState.value.currentLocation ?: LatLng.WUHAN_CENTER
         moveTo(currentLocation, 16)
     }
-    
+
+    override fun getCurrentLocation(): LatLng? {
+        return _uiState.value.currentLocation
+    }
+
     override fun setCurrentLocation(location: LatLng) {
-        _uiState.update { 
+        _uiState.update {
             it.copy(
                 currentLocation = location,
                 showCurrentLocation = true
-            ) 
+            )
         }
     }
     

@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.DirectionsBike
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.NearMe
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -45,6 +46,7 @@ import com.example.amap_sim.ui.theme.AmapSimTheme
 fun HomeOverlay(
     mapController: MapStateController,
     onNavigateToSearch: () -> Unit = {},
+    onNavigateToNearby: () -> Unit = {},
     onNavigateToDrive: () -> Unit = {},
     onNavigateToBike: () -> Unit = {},
     onNavigateToWalk: () -> Unit = {},
@@ -63,6 +65,7 @@ fun HomeOverlay(
         
         // 底部快捷功能入口
         BottomQuickActions(
+            onNearbyClick = onNavigateToNearby,
             onDriveClick = onNavigateToDrive,
             onBikeClick = onNavigateToBike,
             onWalkClick = onNavigateToWalk,
@@ -100,6 +103,7 @@ private fun TopSearchArea(
  */
 @Composable
 private fun BottomQuickActions(
+    onNearbyClick: () -> Unit,
     onDriveClick: () -> Unit,
     onBikeClick: () -> Unit,
     onWalkClick: () -> Unit,
@@ -125,27 +129,48 @@ private fun BottomQuickActions(
             verticalAlignment = Alignment.CenterVertically
         ) {
             QuickActionItem(
+                icon = Icons.Default.NearMe,
+                label = "周边",
+                onClick = {
+                    android.util.Log.d("HomeOverlay", "周边按钮被点击")
+                    onNearbyClick()
+                }
+            )
+
+            QuickActionItem(
                 icon = Icons.Default.DirectionsCar,
                 label = "驾车",
-                onClick = onDriveClick
+                onClick = {
+                    android.util.Log.d("HomeOverlay", "驾车按钮被点击")
+                    onDriveClick()
+                }
             )
-            
+
             QuickActionItem(
                 icon = Icons.Default.DirectionsBike,
                 label = "骑行",
-                onClick = onBikeClick
+                onClick = {
+                    android.util.Log.d("HomeOverlay", "骑行按钮被点击")
+                    onBikeClick()
+                }
             )
-            
+
             QuickActionItem(
                 icon = Icons.Default.DirectionsWalk,
                 label = "步行",
-                onClick = onWalkClick
+                onClick = {
+                    android.util.Log.d("HomeOverlay", "步行按钮被点击")
+                    onWalkClick()
+                }
             )
-            
+
             QuickActionItem(
                 icon = Icons.Default.MoreVert,
                 label = "更多",
-                onClick = onMoreClick
+                onClick = {
+                    android.util.Log.d("HomeOverlay", "更多按钮被点击")
+                    onMoreClick()
+                }
             )
         }
     }
@@ -193,6 +218,7 @@ private fun QuickActionItem(
 private fun BottomQuickActionsPreview() {
     AmapSimTheme {
         BottomQuickActions(
+            onNearbyClick = {},
             onDriveClick = {},
             onBikeClick = {},
             onWalkClick = {},

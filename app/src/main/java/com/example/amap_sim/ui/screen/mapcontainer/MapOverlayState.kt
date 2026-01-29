@@ -30,7 +30,7 @@ sealed class MapOverlayState {
     
     /**
      * 路线规划 Overlay - 起终点 + 路线信息
-     * 
+     *
      * @param destLat 目的地纬度（可选）
      * @param destLon 目的地经度（可选）
      * @param destName 目的地名称（可选）
@@ -42,6 +42,24 @@ sealed class MapOverlayState {
         val destName: String? = null,
         val initialProfile: TravelProfile? = null
     ) : MapOverlayState()
+
+    /**
+     * 周边搜索 Overlay - 周边地点搜索
+     *
+     * @param centerLat 中心点纬度（可选，不指定则使用当前位置）
+     * @param centerLon 中心点经度（可选，不指定则使用当前位置）
+     * @param excludePoiId 要排除的POI ID（可选，用于排除当前查看的POI）
+     */
+    data class Nearby(
+        val centerLat: Double? = null,
+        val centerLon: Double? = null,
+        val excludePoiId: String? = null
+    ) : MapOverlayState()
+
+    /**
+     * 收藏夹 Overlay - 收藏列表
+     */
+    data object Favorites : MapOverlayState()
     
     companion object {
         /**

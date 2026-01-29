@@ -154,6 +154,10 @@ sealed class RouteNavigationEvent {
     /** 跳转到搜索页选择终点 */
     data object SelectEndFromSearch : RouteNavigationEvent()
     /** 开始导航 */
-    data class StartNavigation(val routeResult: RouteResult) : RouteNavigationEvent()
+    data class StartNavigation(
+        val routeResult: RouteResult,
+        val startLocation: LocationInput,
+        val endLocation: LocationInput
+    ) : RouteNavigationEvent()
 }
 
