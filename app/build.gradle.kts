@@ -105,6 +105,9 @@ dependencies {
     // SLF4J 日志（BRouter/GraphHopper 都需要）
     implementation(libs.slf4j.android)
 
+    // Reorderable - 拖动排序
+    implementation("sh.calvin.reorderable:reorderable:2.4.0")
+
     // 测试
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

@@ -87,6 +87,8 @@ sealed class WaypointEvent {
     data class RemoveWaypoint(val index: Int) : WaypointEvent()
     /** 设置途径点 */
     data class SetWaypoint(val index: Int, val location: LocationInput) : WaypointEvent()
+    /** 移动地点（拖动排序）- fromIndex 和 toIndex 是包含起点和终点的全局索引 */
+    data class MoveLocation(val fromIndex: Int, val toIndex: Int) : WaypointEvent()
     /** 开始编辑字段 */
     data class StartEditing(val index: Int) : WaypointEvent()
     /** 结束编辑 */

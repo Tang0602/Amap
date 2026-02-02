@@ -179,6 +179,44 @@ class WaypointViewModel : ViewModel() {
                     }
                 }
             }
+
+            is WaypointEvent.MoveLocation -> {
+                // 处理拖动排序
+                // fromIndex 和 toIndex 是全局索引：0=起点, 1..n=途径点, n+1=终点
+                val currentState = _uiState.value
+                val allLocations = mutableListOf<LocationInput>()
+
+                // 构建完整列表
+                allLocations.add(currentState.startLocation)
+                allLocations.addAll(currentState.waypoints)
+                currentState.endLocation?.let { allLocations.add(it) }
+
+                // 验证索引有效性
+                if (event.fromIndex !in allLocations.indices || event.toIndex !in allLocations.indices) {
+                    return
+                }
+
+                // 执行移动
+                val item = allLocations.removeAt(event.fromIndex)
+                allLocations.add(event.toIndex, item)
+
+                // 更新状态
+                val newStartLocation = allLocations.firstOrNull() ?: LocationInput.CurrentLocation
+                val newEndLocation = if (allLocations.size > 1) allLocations.last() else null
+                val newWaypoints = if (allLocations.size > 2) {
+                    allLocations.subList(1, allLocations.size - 1)
+                } else {
+                    emptyList()
+                }
+
+                _uiState.update {
+                    it.copy(
+                        startLocation = newStartLocation,
+                        waypoints = newWaypoints,
+                        endLocation = newEndLocation
+                    )
+                }
+            }
             
             is WaypointEvent.StartEditing -> {
                 _uiState.update { it.copy(editingIndex = event.index, searchKeyword = "") }

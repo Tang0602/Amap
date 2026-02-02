@@ -46,7 +46,7 @@ import com.example.amap_sim.ui.theme.MapMarkerEnd
 
 /**
  * 途径点输入字段组件
- * 
+ *
  * @param index 字段索引（-1=起点, -2=终点, >=0=途径点索引）
  * @param location 位置输入
  * @param isEditing 是否正在编辑
@@ -216,23 +216,9 @@ fun WaypointInputField(
                         }
                     }
                 }
-                
-                // Drag handle 图标（始终显示，包括编辑模式）
-                Spacer(modifier = Modifier.width(8.dp))
-                IconButton(
-                    onClick = { /* TODO: 拖拽排序 */ },
-                    modifier = Modifier.size(36.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.DragHandle,
-                        contentDescription = "拖拽排序",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
             }
         }
-        
+
         // 右侧 close 图标按钮（始终显示，包括编辑模式）
         Spacer(modifier = Modifier.width(8.dp))
         IconButton(
