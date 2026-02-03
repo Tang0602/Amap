@@ -207,21 +207,41 @@ class RouteViewModel : ViewModel() {
     }
     
     /**
-     * 交换起点终点
+     * 倒序排列所有地点（起点 + 途径点 + 终点）
      */
     private fun swapLocations() {
         val currentState = _uiState.value
-        val newStart = currentState.endLocation ?: return
-        val newEnd = currentState.startLocation
-        
+
+        // 构建完整的地点列表
+        val allLocations = mutableListOf<LocationInput>()
+        allLocations.add(currentState.startLocation)
+        allLocations.addAll(currentState.waypoints)
+        currentState.endLocation?.let { allLocations.add(it) }
+
+        // 如果列表少于2个地点，无法倒序
+        if (allLocations.size < 2) return
+
+        // 倒序排列
+        val reversedLocations = allLocations.reversed()
+
+        // 提取新的起点、途径点、终点
+        val newStart = reversedLocations.first()
+        val newEnd = if (reversedLocations.size > 1) reversedLocations.last() else null
+        val newWaypoints = if (reversedLocations.size > 2) {
+            reversedLocations.subList(1, reversedLocations.size - 1)
+        } else {
+            emptyList()
+        }
+
         _uiState.update {
             it.copy(
                 startLocation = newStart,
+                waypoints = newWaypoints,
                 endLocation = newEnd,
                 routeResult = null
             )
         }
-        
+
         // 重新计算路线
         calculateRoute()
     }

@@ -238,6 +238,10 @@ fun MapContainerScreen(
                             waypoints = overlayState.waypoints,
                             endLocation = overlayState.endLocation,
                             onNavigateBack = { viewModel.navigateBack() },
+                            onOpenFavorites = {
+                                // 直接打开收藏夹 Overlay
+                                viewModel.openFavorites()
+                            },
                             onComplete = { startLocation, waypoints, endLocation ->
                                 // 更新 RoutePlanning 状态并返回
                                 val currentState = viewModel.uiState.value

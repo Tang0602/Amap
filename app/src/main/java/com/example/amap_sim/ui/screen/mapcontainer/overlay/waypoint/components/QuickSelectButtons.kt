@@ -33,7 +33,6 @@ import androidx.compose.ui.unit.dp
 fun QuickSelectButtons(
     onMyLocationClick: () -> Unit,
     onFavoritesClick: () -> Unit,
-    onMapSelectClick: () -> Unit,
     onHomeClick: () -> Unit,
     onCompanyClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -53,11 +52,6 @@ fun QuickSelectButtons(
             icon = Icons.Default.Favorite,
             label = "收藏的点",
             onClick = onFavoritesClick
-        )
-        QuickSelectButton(
-            icon = Icons.Default.LocationOn,
-            label = "地图选点",
-            onClick = onMapSelectClick
         )
         QuickSelectButton(
             icon = Icons.Default.Home,

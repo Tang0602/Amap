@@ -129,5 +129,8 @@ sealed class WaypointNavigationEvent {
         val waypoints: List<LocationInput>,
         val endLocation: LocationInput?
     ) : WaypointNavigationEvent()
+
+    /** 打开收藏夹 */
+    data object OpenFavorites : WaypointNavigationEvent()
 }
 

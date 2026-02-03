@@ -54,6 +54,8 @@ import com.example.amap_sim.ui.theme.MapMarkerEnd
  * @param onFieldClick 点击字段
  * @param onDeleteClick 删除按钮点击（仅途径点）
  * @param onSearchKeywordChange 搜索关键词变化
+ * @param isDragging 是否正在拖拽
+ * @param dragModifier 拖拽手柄的 Modifier
  */
 @Composable
 fun WaypointInputField(
@@ -64,7 +66,9 @@ fun WaypointInputField(
     onFieldClick: () -> Unit,
     onDeleteClick: (() -> Unit)? = null,
     onSearchKeywordChange: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isDragging: Boolean = false,
+    dragModifier: Modifier = Modifier
 ) {
     Row(
         modifier = modifier
@@ -72,13 +76,36 @@ fun WaypointInputField(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // 左侧容器：圆点 + 输入框 + drag handle
+        // 左侧拖拽手柄（仅在有 dragModifier 时显示）
+        if (dragModifier != Modifier) {
+            Icon(
+                imageVector = Icons.Default.DragHandle,
+                contentDescription = "拖动排序",
+                modifier = dragModifier
+                    .size(24.dp)
+                    .padding(end = 8.dp),
+                tint = if (isDragging) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                }
+            )
+        }
+
+        // 主容器：圆点 + 输入框
         Card(
             modifier = Modifier.weight(1f),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                containerColor = if (isDragging) {
+                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)
+                } else {
+                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                }
             ),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(12.dp),
+            elevation = CardDefaults.cardElevation(
+                defaultElevation = if (isDragging) 8.dp else 0.dp
+            )
         ) {
             Row(
                 modifier = Modifier

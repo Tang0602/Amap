@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -59,15 +61,16 @@ fun AddWaypointOverlay(
     endLocation: LocationInput? = null,
     onNavigateBack: () -> Unit,
     onComplete: (LocationInput, List<LocationInput>, LocationInput?) -> Unit,
+    onOpenFavorites: () -> Unit = {},
     viewModel: WaypointViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    
+
     // 初始化数据
     LaunchedEffect(startLocation, waypoints, endLocation) {
         viewModel.initialize(startLocation, waypoints, endLocation)
     }
-    
+
     // 监听导航事件
     LaunchedEffect(Unit) {
         viewModel.navigationEvent.collect { event ->
@@ -76,6 +79,10 @@ fun AddWaypointOverlay(
                     // 先调用 onComplete，让 MapContainerScreen 更新状态
                     // 不要调用 onNavigateBack()，因为 onComplete 中已经处理了导航
                     onComplete(event.startLocation, event.waypoints, event.endLocation)
+                }
+                is WaypointNavigationEvent.OpenFavorites -> {
+                    // 打开收藏夹 Overlay
+                    onOpenFavorites()
                 }
             }
         }
@@ -121,6 +128,15 @@ fun AddWaypointOverlay(
                     }
                     
                     // 输入字段列表
+                    // 构建完整的地点列表（起点 + 途径点 + 终点）
+                    val allLocations = buildList {
+                        add(-1 to uiState.startLocation) // 起点
+                        uiState.waypoints.forEachIndexed { index, waypoint ->
+                            add(index to waypoint) // 途径点
+                        }
+                        uiState.endLocation?.let { add(-2 to it) } // 终点
+                    }
+
                     // 当途径点数量 >= 2 时，使用可滚动列表
                     if (uiState.waypoints.size >= 2) {
                         Box(
@@ -128,106 +144,61 @@ fun AddWaypointOverlay(
                                 .fillMaxWidth()
                                 .heightIn(max = 300.dp)
                         ) {
-                            Column(
-                                modifier = Modifier.verticalScroll(rememberScrollState())
+                            LazyColumn(
+                                modifier = Modifier.fillMaxWidth()
                             ) {
-                                // 起点
-                                WaypointInputField(
-                                    index = -1,
-                                    location = uiState.startLocation,
-                                    isEditing = uiState.editingIndex == -1,
-                                    searchKeyword = if (uiState.editingIndex == -1) uiState.searchKeyword else "",
-                                    onFieldClick = { viewModel.onEvent(WaypointEvent.StartEditing(-1)) },
-                                    onSearchKeywordChange = {
-                                        viewModel.onEvent(WaypointEvent.UpdateSearchKeyword(it))
-                                    }
-                                )
-                                HorizontalDivider(
-                                    modifier = Modifier.padding(horizontal = 16.dp),
-                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                                )
-
-                                // 途径点列表
-                                uiState.waypoints.forEachIndexed { index, waypoint ->
-                                    WaypointInputField(
-                                        index = index,
-                                        location = waypoint,
-                                        isEditing = uiState.editingIndex == index,
-                                        searchKeyword = if (uiState.editingIndex == index) uiState.searchKeyword else "",
-                                        onFieldClick = { viewModel.onEvent(WaypointEvent.StartEditing(index)) },
-                                        onDeleteClick = { viewModel.onEvent(WaypointEvent.RemoveWaypoint(index)) },
-                                        onSearchKeywordChange = {
-                                            viewModel.onEvent(WaypointEvent.UpdateSearchKeyword(it))
+                                itemsIndexed(
+                                    items = allLocations,
+                                    key = { _, (index, _) -> index }
+                                ) { globalIndex, (index, location) ->
+                                    Column {
+                                        WaypointInputField(
+                                            index = index,
+                                            location = location,
+                                            isEditing = uiState.editingIndex == index,
+                                            searchKeyword = if (uiState.editingIndex == index) uiState.searchKeyword else "",
+                                            onFieldClick = { viewModel.onEvent(WaypointEvent.StartEditing(index)) },
+                                            onDeleteClick = if (index >= 0) {
+                                                { viewModel.onEvent(WaypointEvent.RemoveWaypoint(index)) }
+                                            } else null,
+                                            onSearchKeywordChange = {
+                                                viewModel.onEvent(WaypointEvent.UpdateSearchKeyword(it))
+                                            }
+                                        )
+                                        if (globalIndex < allLocations.size - 1) {
+                                            HorizontalDivider(
+                                                modifier = Modifier.padding(horizontal = 16.dp),
+                                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                            )
                                         }
-                                    )
-                                    HorizontalDivider(
-                                        modifier = Modifier.padding(horizontal = 16.dp),
-                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                                    )
-                                }
-
-                                // 终点
-                                WaypointInputField(
-                                    index = -2,
-                                    location = uiState.endLocation,
-                                    isEditing = uiState.editingIndex == -2,
-                                    searchKeyword = if (uiState.editingIndex == -2) uiState.searchKeyword else "",
-                                    onFieldClick = { viewModel.onEvent(WaypointEvent.StartEditing(-2)) },
-                                    onSearchKeywordChange = {
-                                        viewModel.onEvent(WaypointEvent.UpdateSearchKeyword(it))
                                     }
-                                )
+                                }
                             }
                         }
                     } else {
                         // 途径点数量 < 2 时，使用固定列表
                         Column {
-                            // 起点
-                            WaypointInputField(
-                                index = -1,
-                                location = uiState.startLocation,
-                                isEditing = uiState.editingIndex == -1,
-                                searchKeyword = if (uiState.editingIndex == -1) uiState.searchKeyword else "",
-                                onFieldClick = { viewModel.onEvent(WaypointEvent.StartEditing(-1)) },
-                                onSearchKeywordChange = {
-                                    viewModel.onEvent(WaypointEvent.UpdateSearchKeyword(it))
-                                }
-                            )
-                            HorizontalDivider(
-                                modifier = Modifier.padding(horizontal = 16.dp),
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                            )
-
-                            // 途径点列表
-                            uiState.waypoints.forEachIndexed { index, waypoint ->
+                            allLocations.forEachIndexed { globalIndex, (index, location) ->
                                 WaypointInputField(
                                     index = index,
-                                    location = waypoint,
+                                    location = location,
                                     isEditing = uiState.editingIndex == index,
                                     searchKeyword = if (uiState.editingIndex == index) uiState.searchKeyword else "",
                                     onFieldClick = { viewModel.onEvent(WaypointEvent.StartEditing(index)) },
-                                    onDeleteClick = { viewModel.onEvent(WaypointEvent.RemoveWaypoint(index)) },
+                                    onDeleteClick = if (index >= 0) {
+                                        { viewModel.onEvent(WaypointEvent.RemoveWaypoint(index)) }
+                                    } else null,
                                     onSearchKeywordChange = {
                                         viewModel.onEvent(WaypointEvent.UpdateSearchKeyword(it))
                                     }
                                 )
-                                HorizontalDivider(
-                                    modifier = Modifier.padding(horizontal = 16.dp),
-                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                                )
-                            }
-
-                            // 终点
-                            WaypointInputField(
-                                index = -2,
-                                location = uiState.endLocation,
-                                isEditing = uiState.editingIndex == -2,
-                                searchKeyword = if (uiState.editingIndex == -2) uiState.searchKeyword else "",
-                                onFieldClick = { viewModel.onEvent(WaypointEvent.StartEditing(-2)) },
-                                onSearchKeywordChange = {
-                                    viewModel.onEvent(WaypointEvent.UpdateSearchKeyword(it))
+                                if (globalIndex < allLocations.size - 1) {
+                                    HorizontalDivider(
+                                        modifier = Modifier.padding(horizontal = 16.dp),
+                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                    )
                                 }
-                            )
+                            }
                         }
                     }
                     
@@ -308,19 +279,16 @@ fun AddWaypointOverlay(
                 if (uiState.showQuickButtons) {
                     item {
                         QuickSelectButtons(
-                            onMyLocationClick = { 
+                            onMyLocationClick = {
                                 viewModel.onEvent(WaypointEvent.QuickSelectMyLocation)
                             },
-                            onFavoritesClick = { 
+                            onFavoritesClick = {
                                 viewModel.onEvent(WaypointEvent.QuickSelectFavorites)
                             },
-                            onMapSelectClick = { 
-                                viewModel.onEvent(WaypointEvent.QuickSelectMap)
-                            },
-                            onHomeClick = { 
+                            onHomeClick = {
                                 viewModel.onEvent(WaypointEvent.QuickSelectHome)
                             },
-                            onCompanyClick = { 
+                            onCompanyClick = {
                                 viewModel.onEvent(WaypointEvent.QuickSelectCompany)
                             }
                         )

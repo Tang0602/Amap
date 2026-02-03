@@ -269,23 +269,35 @@ class WaypointViewModel : ViewModel() {
             }
             
             is WaypointEvent.QuickSelectFavorites -> {
-                // TODO: 实现收藏的点选择
-                Log.d(TAG, "快捷选择：收藏的点（待实现）")
+                // 打开收藏夹 Overlay
+                viewModelScope.launch {
+                    _navigationEvent.emit(WaypointNavigationEvent.OpenFavorites)
+                }
             }
-            
+
             is WaypointEvent.QuickSelectMap -> {
-                // TODO: 实现地图选点
-                Log.d(TAG, "快捷选择：地图选点（待实现）")
+                // 已删除地图选点功能
+                Log.d(TAG, "快捷选择：地图选点（已删除）")
             }
-            
+
             is WaypointEvent.QuickSelectHome -> {
-                // TODO: 实现家地址选择
-                Log.d(TAG, "快捷选择：家（待实现）")
+                // 设置家地址为阳光小区
+                val homeLocation = LocationInput.SpecificLocation(
+                    name = "阳光小区",
+                    coordinates = LatLng(30.5928, 114.3055), // 使用默认坐标，实际应该搜索获取
+                    address = "阳光小区"
+                )
+                selectLocationForEditing(homeLocation)
             }
-            
+
             is WaypointEvent.QuickSelectCompany -> {
-                // TODO: 实现公司地址选择
-                Log.d(TAG, "快捷选择：公司（待实现）")
+                // 设置公司地址为字节跳动
+                val companyLocation = LocationInput.SpecificLocation(
+                    name = "字节跳动",
+                    coordinates = LatLng(30.5928, 114.3055), // 使用默认坐标，实际应该搜索获取
+                    address = "字节跳动"
+                )
+                selectLocationForEditing(companyLocation)
             }
             
             is WaypointEvent.Complete -> {
