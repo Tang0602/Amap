@@ -144,9 +144,26 @@ private fun SearchOverlayContent(
             SearchBarInput(
                 value = uiState.query,
                 onValueChange = { onEvent(SearchEvent.UpdateQuery(it)) },
-                onBackClick = onNavigateBack,
+                onBackClick = {
+                    // 如果在搜索结果界面，返回热门分类界面
+                    // 如果在热门分类界面，返回上一个界面
+                    if (uiState.showResults) {
+                        onEvent(SearchEvent.ClearSearch)
+                    } else {
+                        onNavigateBack()
+                    }
+                },
                 onSearch = { onEvent(SearchEvent.Search(it)) },
-                onClear = { onEvent(SearchEvent.ClearSearch) },
+                onClear = {
+                    // 点击右侧叉号返回热门分类界面
+                    onEvent(SearchEvent.ClearSearch)
+                },
+                onFocusChange = { focused ->
+                    // 当搜索栏获得焦点时，如果有搜索结果则清除，显示初始界面（选择搜索关键词的界面）
+                    if (focused && uiState.showResults) {
+                        onEvent(SearchEvent.ClearSearch)
+                    }
+                },
                 autoFocus = !uiState.showResults,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )

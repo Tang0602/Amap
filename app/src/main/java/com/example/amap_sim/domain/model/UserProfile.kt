@@ -5,9 +5,9 @@ package com.example.amap_sim.domain.model
  */
 data class UserProfile(
     /** 用户 ID */
-    val userId: String = "",
+    val userId: String = "284834783",
     /** 用户名 */
-    val userName: String = "",
+    val userName: String = "高德用户",
     /** 头像路径 */
     val avatarPath: String = ""
 )

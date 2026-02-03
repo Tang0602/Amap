@@ -59,9 +59,7 @@ fun ProfileScreen(
             item {
                 UserInfoSection(
                     userProfile = uiState.userProfile,
-                    onEditAvatar = { viewModel.onEvent(ProfileEvent.ShowEditDialog(EditType.AVATAR)) },
-                    onEditName = { viewModel.onEvent(ProfileEvent.ShowEditDialog(EditType.NAME)) },
-                    onEditUserId = { viewModel.onEvent(ProfileEvent.ShowEditDialog(EditType.USER_ID)) }
+                    onEditName = { viewModel.onEvent(ProfileEvent.ShowEditDialog(EditType.NAME)) }
                 )
             }
 
@@ -192,9 +190,7 @@ fun ProfileScreen(
 @Composable
 private fun UserInfoSection(
     userProfile: com.example.amap_sim.domain.model.UserProfile,
-    onEditAvatar: () -> Unit,
-    onEditName: () -> Unit,
-    onEditUserId: () -> Unit
+    onEditName: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -206,13 +202,12 @@ private fun UserInfoSection(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 头像
+            // 头像（不可编辑）
             Box(
                 modifier = Modifier
                     .size(80.dp)
                     .clip(CircleShape)
-                    .background(AmapBlue.copy(alpha = 0.1f))
-                    .clickable(onClick = onEditAvatar),
+                    .background(AmapBlue.copy(alpha = 0.1f)),
                 contentAlignment = Alignment.Center
             ) {
                 if (userProfile.avatarPath.isEmpty()) {
@@ -233,19 +228,16 @@ private fun UserInfoSection(
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            // 名字和 ID
+            // 名字和ID
             Column(modifier = Modifier.weight(1f)) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.clickable(onClick = onEditName)
                 ) {
                     Text(
-                        text = userProfile.userName.ifEmpty { "点击设置名字" },
+                        text = userProfile.userName,
                         style = MaterialTheme.typography.titleLarge,
-                        color = if (userProfile.userName.isEmpty())
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        else
-                            MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Icon(
@@ -258,23 +250,12 @@ private fun UserInfoSection(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clickable(onClick = onEditUserId)
-                ) {
-                    Text(
-                        text = if (userProfile.userId.isEmpty()) "点击设置 ID" else "ID: ${userProfile.userId}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Icon(
-                        Icons.Default.Edit,
-                        contentDescription = null,
-                        modifier = Modifier.size(14.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                // ID 显示（不可编辑）
+                Text(
+                    text = "ID: ${userProfile.userId}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }

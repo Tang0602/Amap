@@ -32,10 +32,24 @@ class UserDataManager(context: Context) {
      * 获取用户资料
      */
     suspend fun getUserProfile(): UserProfile = withContext(Dispatchers.IO) {
+        val userId = prefs.getString(KEY_USER_ID, null)
+        val userName = prefs.getString(KEY_USER_NAME, null)
+        val avatarPath = prefs.getString(KEY_AVATAR_PATH, null)
+
+        // 如果存储的是空值，清除并使用默认值
+        if (userId.isNullOrEmpty() || userName.isNullOrEmpty()) {
+            prefs.edit().apply {
+                remove(KEY_USER_ID)
+                remove(KEY_USER_NAME)
+                remove(KEY_AVATAR_PATH)
+                apply()
+            }
+        }
+
         UserProfile(
-            userId = prefs.getString(KEY_USER_ID, "") ?: "",
-            userName = prefs.getString(KEY_USER_NAME, "") ?: "",
-            avatarPath = prefs.getString(KEY_AVATAR_PATH, "") ?: ""
+            userId = if (userId.isNullOrEmpty()) "284834783" else userId,
+            userName = if (userName.isNullOrEmpty()) "高德用户" else userName,
+            avatarPath = avatarPath ?: ""
         )
     }
 

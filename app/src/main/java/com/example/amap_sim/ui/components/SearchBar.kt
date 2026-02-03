@@ -106,11 +106,13 @@ fun SearchBarInput(
     autoFocus: Boolean = true,
     onBackClick: () -> Unit = {},
     onSearch: (String) -> Unit = {},
-    onClear: () -> Unit = {}
+    onClear: () -> Unit = {},
+    onFocusChange: (Boolean) -> Unit = {}
 ) {
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
-    
+    var isFocused by remember { mutableStateOf(false) }
+
     // 自动获取焦点
     LaunchedEffect(autoFocus) {
         if (autoFocus) {
@@ -162,7 +164,14 @@ fun SearchBarInput(
                 onValueChange = onValueChange,
                 modifier = Modifier
                     .weight(1f)
-                    .focusRequester(focusRequester),
+                    .focusRequester(focusRequester)
+                    .clickable {
+                        // 点击输入框时触发焦点变化回调
+                        if (!isFocused) {
+                            isFocused = true
+                            onFocusChange(true)
+                        }
+                    },
                 singleLine = true,
                 textStyle = MaterialTheme.typography.bodyLarge.copy(
                     color = MaterialTheme.colorScheme.onSurface
@@ -175,6 +184,8 @@ fun SearchBarInput(
                     onSearch = {
                         onSearch(value)
                         focusManager.clearFocus()
+                        isFocused = false
+                        onFocusChange(false)
                     }
                 ),
                 decorationBox = { innerTextField ->
