@@ -553,9 +553,18 @@ class OfflineSearchService(
      * 从游标读取 POI 数据
      */
     private fun cursorToPoi(cursor: Cursor): PoiResult {
+        val rating = cursor.getDoubleOrNull("rating")
+        val id = cursor.getLong(cursor.getColumnIndexOrThrow(Columns.ID))
+        val name = cursor.getString(cursor.getColumnIndexOrThrow(Columns.NAME)) ?: ""
+
+        // 调试日志：显示rating读取情况
+        if (rating != null) {
+            Log.d(TAG, "POI[$id] $name 有评分: $rating")
+        }
+
         return PoiResult(
-            id = cursor.getLong(cursor.getColumnIndexOrThrow(Columns.ID)),
-            name = cursor.getString(cursor.getColumnIndexOrThrow(Columns.NAME)) ?: "",
+            id = id,
+            name = name,
             category = cursor.getString(cursor.getColumnIndexOrThrow(Columns.MAIN_CATEGORY)) ?: "",
             lat = cursor.getDouble(cursor.getColumnIndexOrThrow(Columns.LAT)),
             lon = cursor.getDouble(cursor.getColumnIndexOrThrow(Columns.LON)),
@@ -564,7 +573,7 @@ class OfflineSearchService(
             openingHours = cursor.getStringOrNull("opening_hours"),
             description = cursor.getStringOrNull("description"),
             travelTime = cursor.getStringOrNull("travel_time"),
-            rating = cursor.getDoubleOrNull("rating")
+            rating = rating
         )
     }
 

@@ -4,7 +4,11 @@
       "Bash(dir \"D:\\_Amap\\Amap\\app\\src\" /s /ad)",
       "Bash(sqlite3:*)",
       "Bash(adb devices:*)",
-      "Bash(adb -s emulator-5554 reboot)"
+      "Bash(adb -s emulator-5554 reboot)",
+      "Bash(adb -s emulator-5554 shell:*)",
+      "Bash(./gradlew assembleDebug:*)",
+      "Bash(gradlew.bat assembleDebug:*)",
+      "Bash(Select-Object -First 100)"
     ],
     "deny": [],
     "ask": []

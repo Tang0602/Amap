@@ -61,55 +61,31 @@ fun NearbyOverlay(
             .background(Color.White)
     ) {
         // 顶部栏
-        TopBar(onClose = onClose)
-
-        // 分类筛选
-        CategoryFilter(
-            selectedCategory = uiState.selectedCategory,
-            onCategorySelected = { category ->
-                viewModel.onEvent(NearbyEvent.SelectCategory(category))
-            }
+        TopBar(
+            onClose = onClose,
+            isShowingRanking = uiState.rankingCategory != null,
+            rankingCategory = uiState.rankingCategory,
+            onBackFromRanking = { viewModel.onEvent(NearbyEvent.HideRanking) }
         )
 
-        Divider()
-
-        // 搜索按钮
-        SearchButton(
-            isLoading = uiState.isLoading,
-            searchCenter = initialCenter,
-            onSearchClick = {
-                // 如果有指定的中心点（从POI详情页打开），使用该中心点
-                // 否则使用当前位置
-                val center = initialCenter ?: mapController.getCurrentLocation()
-                center?.let { location ->
-                    viewModel.onEvent(NearbyEvent.Search(location, excludePoiId))
-                }
-            }
-        )
-
-        Divider()
-
-        // 结果列表
-        if (uiState.isLoading) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
-        } else if (uiState.error != null) {
-            ErrorView(
-                error = uiState.error!!,
-                onDismiss = { viewModel.onEvent(NearbyEvent.ClearError) }
-            )
-        } else if (uiState.searchResults.isEmpty() && uiState.center != null) {
-            EmptyView()
-        } else {
-            ResultList(
-                results = uiState.searchResults,
+        // 根据是否显示排行榜来决定显示内容
+        if (uiState.rankingCategory != null) {
+            // 显示排行榜
+            CategoryRankingContent(
+                uiState = uiState,
+                category = uiState.rankingCategory!!,
                 onPoiClick = { poi ->
                     viewModel.onEvent(NearbyEvent.SelectPoi(poi))
                 }
+            )
+        } else {
+            // 显示搜索界面
+            SearchContent(
+                uiState = uiState,
+                initialCenter = initialCenter,
+                excludePoiId = excludePoiId,
+                mapController = mapController,
+                viewModel = viewModel
             )
         }
     }
@@ -120,12 +96,28 @@ fun NearbyOverlay(
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TopBar(onClose: () -> Unit) {
+private fun TopBar(
+    onClose: () -> Unit,
+    isShowingRanking: Boolean,
+    rankingCategory: NearbyCategory?,
+    onBackFromRanking: () -> Unit
+) {
     TopAppBar(
-        title = { Text("周边搜索") },
+        title = {
+            Text(
+                if (isShowingRanking && rankingCategory != null) {
+                    "${rankingCategory.displayName}排行榜"
+                } else {
+                    "周边搜索"
+                }
+            )
+        },
         navigationIcon = {
-            IconButton(onClick = onClose) {
-                Icon(Icons.Default.Close, "关闭")
+            IconButton(onClick = if (isShowingRanking) onBackFromRanking else onClose) {
+                Icon(
+                    if (isShowingRanking) Icons.Default.ArrowBack else Icons.Default.Close,
+                    if (isShowingRanking) "返回" else "关闭"
+                )
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
@@ -194,45 +186,6 @@ private fun CategoryChip(
                 color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-    }
-}
-
-/**
- * 搜索按钮
- */
-@Composable
-private fun SearchButton(
-    isLoading: Boolean,
-    searchCenter: com.example.amap_sim.domain.model.LatLng?,
-    onSearchClick: () -> Unit
-) {
-    Button(
-        onClick = onSearchClick,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        enabled = !isLoading,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = AmapBlue
-        )
-    ) {
-        if (isLoading) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(20.dp),
-                color = Color.White,
-                strokeWidth = 2.dp
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-        }
-        Text(
-            if (isLoading) {
-                "搜索中..."
-            } else if (searchCenter != null) {
-                "搜索此地点周边"
-            } else {
-                "搜索当前位置周边"
-            }
-        )
     }
 }
 
@@ -397,4 +350,332 @@ private fun formatDistance(meters: Double): String {
         meters < 1000 -> "${meters.toInt()}m"
         else -> String.format("%.1fkm", meters / 1000)
     }
+}
+
+/**
+ * 搜索模式内容
+ */
+@Composable
+private fun SearchContent(
+    uiState: NearbyUiState,
+    initialCenter: com.example.amap_sim.domain.model.LatLng?,
+    excludePoiId: String?,
+    mapController: com.example.amap_sim.ui.screen.mapcontainer.MapStateController,
+    viewModel: NearbyViewModel
+) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        // 分类筛选
+        CategoryFilter(
+            selectedCategory = uiState.selectedCategory,
+            onCategorySelected = { category ->
+                viewModel.onEvent(NearbyEvent.SelectCategory(category))
+            }
+        )
+
+        Divider()
+
+        // 搜索按钮和排行榜入口
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // 搜索按钮
+            Button(
+                onClick = {
+                    val center = initialCenter ?: mapController.getCurrentLocation()
+                    center?.let { location ->
+                        viewModel.onEvent(NearbyEvent.Search(location, excludePoiId))
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !uiState.isLoading,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = AmapBlue
+                )
+            ) {
+                if (uiState.isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = Color.White,
+                        strokeWidth = 2.dp
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                Text(
+                    if (uiState.isLoading) {
+                        "搜索中..."
+                    } else if (initialCenter != null) {
+                        "搜索此地点周边"
+                    } else {
+                        "搜索当前位置周边"
+                    }
+                )
+            }
+
+            // 排行榜入口按钮（仅在选择了美食/酒店/景点分类时显示）
+            if (uiState.selectedCategory != null &&
+                uiState.selectedCategory != NearbyCategory.ALL
+            ) {
+                OutlinedButton(
+                    onClick = {
+                        val center = initialCenter ?: mapController.getCurrentLocation()
+                        center?.let { location ->
+                            viewModel.onEvent(
+                                NearbyEvent.ShowCategoryRanking(
+                                    uiState.selectedCategory!!,
+                                    location
+                                )
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = AmapBlue
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.EmojiEvents,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("查看${uiState.selectedCategory!!.displayName}排行榜")
+                }
+            }
+        }
+
+        Divider()
+
+        // 结果列表
+        if (uiState.isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        } else if (uiState.error != null) {
+            ErrorView(
+                error = uiState.error!!,
+                onDismiss = { viewModel.onEvent(NearbyEvent.ClearError) }
+            )
+        } else if (uiState.searchResults.isEmpty() && uiState.center != null) {
+            EmptyView()
+        } else {
+            ResultList(
+                results = uiState.searchResults,
+                onPoiClick = { poi ->
+                    viewModel.onEvent(NearbyEvent.SelectPoi(poi))
+                }
+            )
+        }
+    }
+}
+
+/**
+ * 分类排行榜内容
+ */
+@Composable
+private fun CategoryRankingContent(
+    uiState: NearbyUiState,
+    category: NearbyCategory,
+    onPoiClick: (PoiResult) -> Unit
+) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        // 排行榜说明
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = MaterialTheme.colorScheme.surfaceVariant
+        ) {
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = when (category) {
+                        NearbyCategory.FOOD -> Icons.Default.Restaurant
+                        NearbyCategory.HOTEL -> Icons.Default.Hotel
+                        NearbyCategory.ATTRACTION -> Icons.Default.Attractions
+                        else -> Icons.Default.Apps
+                    },
+                    contentDescription = null,
+                    tint = AmapBlue,
+                    modifier = Modifier.size(24.dp)
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "${category.displayName}排行榜",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text(
+                        text = "按评分排序 · 周边10km范围",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+
+        Divider()
+
+        // 排行榜列表
+        if (uiState.isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        } else if (uiState.error != null) {
+            ErrorView(
+                error = uiState.error!!,
+                onDismiss = { /* 错误已在状态中 */ }
+            )
+        } else if (uiState.rankingList.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.EmojiEvents,
+                        contentDescription = null,
+                        modifier = Modifier.size(64.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "暂无${category.displayName}排行榜数据",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "附近可能没有足够的${category.displayName}数据",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                item {
+                    Text(
+                        text = "Top ${uiState.rankingList.size}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+
+                items(uiState.rankingList) { poi ->
+                    val rank = uiState.rankingList.indexOf(poi) + 1
+                    RankingPoiItem(
+                        poi = poi,
+                        rank = rank,
+                        onClick = { onPoiClick(poi) }
+                    )
+                    Divider()
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 排行榜POI项
+ */
+@Composable
+private fun RankingPoiItem(
+    poi: PoiResult,
+    rank: Int,
+    onClick: () -> Unit
+) {
+    ListItem(
+        headlineContent = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // 排名徽章
+                Surface(
+                    shape = RoundedCornerShape(4.dp),
+                    color = when (rank) {
+                        1 -> Color(0xFFFFD700) // 金色
+                        2 -> Color(0xFFC0C0C0) // 银色
+                        3 -> Color(0xFFCD7F32) // 铜色
+                        else -> MaterialTheme.colorScheme.surfaceVariant
+                    }
+                ) {
+                    Text(
+                        text = "$rank",
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (rank <= 3) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Text(
+                    text = poi.name,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        },
+        supportingContent = {
+            Column {
+                // 评分
+                poi.rating?.let { rating ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = null,
+                            tint = Color(0xFFFFB300),
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = String.format("%.1f", rating),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color(0xFFFFB300)
+                        )
+                    }
+                }
+                // 地址
+                if (!poi.address.isNullOrEmpty()) {
+                    Text(
+                        text = poi.address,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                // 距离
+                poi.distance?.let { distance ->
+                    if (distance > 0) {
+                        Text(
+                            text = formatDistance(distance),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = AmapBlue
+                        )
+                    }
+                }
+            }
+        },
+        trailingContent = {
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowRight,
+                contentDescription = null
+            )
+        },
+        modifier = Modifier.clickable(onClick = onClick)
+    )
 }

@@ -1,6 +1,7 @@
 package com.example.amap_sim.di
 
 import android.content.Context
+import com.example.amap_sim.data.local.AgentDataManager
 import com.example.amap_sim.data.local.BRouterService
 import com.example.amap_sim.data.local.OfflineDataManager
 import com.example.amap_sim.data.local.OfflineRoutingService
@@ -34,6 +35,7 @@ object ServiceLocator {
     private var _graphHopperService: OfflineRoutingService? = null
     private var _searchService: OfflineSearchService? = null
     private var _userDataManager: UserDataManager? = null
+    private var _agentDataManager: AgentDataManager? = null
     
     /**
      * 数据管理器
@@ -76,6 +78,14 @@ object ServiceLocator {
         get() = _userDataManager ?: throw IllegalStateException(
             "ServiceLocator 未初始化，请先调用 initialize()"
         )
+
+    /**
+     * Agent 数据管理
+     */
+    val agentDataManager: AgentDataManager
+        get() = _agentDataManager ?: throw IllegalStateException(
+            "ServiceLocator 未初始化，请先调用 initialize()"
+        )
     
     /**
      * 检查是否使用 BRouter
@@ -101,7 +111,8 @@ object ServiceLocator {
 
         _searchService = OfflineSearchService(_dataManager!!)
         _userDataManager = UserDataManager(appContext)
-        
+        _agentDataManager = AgentDataManager(appContext)
+
         isInitialized = true
     }
     
@@ -124,7 +135,8 @@ object ServiceLocator {
         _graphHopperService = null
         _searchService = null
         _userDataManager = null
-        
+        _agentDataManager = null
+
         isInitialized = false
     }
 }

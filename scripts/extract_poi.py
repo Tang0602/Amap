@@ -243,7 +243,21 @@ class POIHandler(osmium.SimpleHandler):
         phone = tags.get('phone') or tags.get('contact:phone')
         website = tags.get('website') or tags.get('contact:website')
         opening_hours = tags.get('opening_hours')
-        
+        description = tags.get('description')
+
+        # 提取评分信息（从OSM标签）
+        rating = None
+        if tags.get('stars'):
+            try:
+                rating = float(tags.get('stars'))
+            except:
+                pass
+        elif tags.get('rating'):
+            try:
+                rating = float(tags.get('rating'))
+            except:
+                pass
+
         return {
             'osm_id': osm_id,
             'osm_type': obj_type,
@@ -257,6 +271,8 @@ class POIHandler(osmium.SimpleHandler):
             'phone': phone,
             'website': website,
             'opening_hours': opening_hours,
+            'description': description,
+            'rating': rating,
             'tags': str(dict(tags))[:500],  # 保存原始标签（限制长度）
         }
     
@@ -399,10 +415,10 @@ def insert_pois_batch(conn: sqlite3.Connection, pois: List[Dict]) -> int:
     insert_sql = '''
         INSERT INTO poi (
             osm_id, osm_type, name, name_en, main_category, sub_category,
-            lat, lon, address, phone, website, opening_hours, tags
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            lat, lon, address, phone, website, opening_hours, description, travel_time, rating, tags
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     '''
-    
+
     data = [
         (
             poi['osm_id'],
@@ -417,6 +433,9 @@ def insert_pois_batch(conn: sqlite3.Connection, pois: List[Dict]) -> int:
             poi['phone'],
             poi['website'],
             poi['opening_hours'],
+            poi.get('description'),
+            poi.get('travel_time'),
+            poi.get('rating'),
             poi['tags'],
         )
         for poi in pois
@@ -473,6 +492,9 @@ def create_database(db_path: str) -> sqlite3.Connection:
             phone TEXT,
             website TEXT,
             opening_hours TEXT,
+            description TEXT,
+            travel_time TEXT,
+            rating REAL,
             tags TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )

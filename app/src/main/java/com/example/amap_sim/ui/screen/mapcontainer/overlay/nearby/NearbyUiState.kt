@@ -20,7 +20,11 @@ data class NearbyUiState(
     /** 错误信息 */
     val error: String? = null,
     /** 要排除的POI ID */
-    val excludePoiId: String? = null
+    val excludePoiId: String? = null,
+    /** 当前显示的排行榜分类（null表示不显示排行榜） */
+    val rankingCategory: NearbyCategory? = null,
+    /** 排行榜数据 */
+    val rankingList: List<PoiResult> = emptyList()
 )
 
 /**
@@ -49,4 +53,8 @@ sealed class NearbyEvent {
     data class SelectPoi(val poi: PoiResult) : NearbyEvent()
     /** 清除错误 */
     data object ClearError : NearbyEvent()
+    /** 显示分类排行榜 */
+    data class ShowCategoryRanking(val category: NearbyCategory, val center: LatLng) : NearbyEvent()
+    /** 隐藏排行榜 */
+    data object HideRanking : NearbyEvent()
 }
