@@ -1,6 +1,8 @@
 """
 指令 4 验证脚本：告诉我周边最近的酒店名字
 
+答案：帅府铂颂饭店
+
 功能说明：
 - 验证应用是否正确记录了周边最近的酒店信息
 - 通过 ADB 读取应用私有存储中的 JSON 文件
@@ -17,6 +19,9 @@
 import json
 import subprocess
 import sys
+
+# 预设的正确答案
+EXPECTED_NAME = "帅府铂颂饭店"
 
 
 def verify_nearest_hotel(device_id=None):
@@ -76,12 +81,14 @@ def verify_nearest_hotel(device_id=None):
         name = json_data["name"]
         distance = json_data["distance"]
 
-        # 验证字段值是否有效
-        if not name or name == "":
-            print("❌ FAIL: 'name' 字段为空")
-            print(f"   当前值: '{name}'")
+        # 验证酒店名称是否包含预设答案
+        if EXPECTED_NAME not in name:
+            print("❌ FAIL: 酒店名称中未包含预期答案")
+            print(f"   预期答案: {EXPECTED_NAME}")
+            print(f"   实际结果: {name}")
             return False
 
+        # 验证距离是否有效
         if distance < 0:
             print("❌ FAIL: 'distance' 字段无效（应大于等于 0）")
             print(f"   当前值: {distance}")

@@ -1,6 +1,8 @@
 """
 指令 5 验证脚本：告诉我收藏夹收藏了几个地点
 
+答案：2或者两
+
 功能说明：
 - 验证应用是否正确记录了收藏夹中收藏的地点数量
 - 通过 ADB 读取应用私有存储中的 JSON 文件
@@ -17,6 +19,9 @@
 import json
 import subprocess
 import sys
+
+# 预设的正确答案（可能的表达方式）
+EXPECTED_ANSWERS = ["2个", "2项", "两个", "两项"]
 
 
 def verify_favorites_count(device_id=None):
@@ -71,24 +76,28 @@ def verify_favorites_count(device_id=None):
         # 获取字段值
         count = json_data["count"]
 
-        # 验证字段值是否有效
-        if not isinstance(count, int):
-            print("❌ FAIL: 'count' 字段类型错误（应为整数）")
-            print(f"   当前值: {count} (类型: {type(count).__name__})")
-            return False
+        # 将count转换为字符串进行检查
+        count_str = str(count)
 
-        if count < 0:
-            print("❌ FAIL: 'count' 字段无效（应大于等于 0）")
-            print(f"   当前值: {count}")
+        # 验证收藏数量描述是否包含预设答案中的任意一个
+        found_match = False
+        matched_answer = None
+        for expected in EXPECTED_ANSWERS:
+            if expected in count_str:
+                found_match = True
+                matched_answer = expected
+                break
+
+        if not found_match:
+            print("❌ FAIL: 收藏数量描述中未包含预期答案")
+            print(f"   预期答案（任意一个）: {', '.join(EXPECTED_ANSWERS)}")
+            print(f"   实际结果: {count_str}")
             return False
 
         # 验证通过，输出结果
         print("✓ PASS: 收藏夹地点数量验证成功")
-        print(f"   收藏数量: {count} 个地点")
-
-        # 如果数量为 0，给出提示
-        if count == 0:
-            print("   提示: 当前收藏夹为空")
+        print(f"   收藏��量: {count_str}")
+        print(f"   匹配到的答案: {matched_answer}")
 
         return True
 

@@ -1,5 +1,7 @@
 """
-指令 2 验证脚本：告诉我最近一次导航去了哪个地点
+指令 2 验证脚本：告诉我第一次导航去了哪个地点
+
+答案：A Giraffe Coffee&Cacao
 
 功能说明：
 - 验证应用是否正确记录了最近一次导航的目的地信息
@@ -18,6 +20,9 @@ import json
 import subprocess
 import sys
 from datetime import datetime
+
+# 预设的正确答案
+EXPECTED_DESTINATION = "A Giraffe Coffee&Cacao"
 
 
 def verify_last_navigation(device_id=None):
@@ -77,12 +82,14 @@ def verify_last_navigation(device_id=None):
         destination = json_data["destination"]
         timestamp = json_data["timestamp"]
 
-        # 验证字段值是否有效
-        if not destination or destination == "":
-            print("❌ FAIL: 'destination' 字段为空")
-            print(f"   当前值: '{destination}'")
+        # 验证目的地是否包含预设答案
+        if EXPECTED_DESTINATION not in destination:
+            print("❌ FAIL: 目的地中未包含预期答案")
+            print(f"   预期答案: {EXPECTED_DESTINATION}")
+            print(f"   实际结果: {destination}")
             return False
 
+        # 验证时间戳是否有效
         if timestamp <= 0:
             print("❌ FAIL: 'timestamp' 字段无效（应大于 0，表示已记录导航）")
             print(f"   当前值: {timestamp}")

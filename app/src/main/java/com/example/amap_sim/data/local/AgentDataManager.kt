@@ -205,13 +205,14 @@ class AgentDataManager(private val context: Context) {
         }
     }
 
-    /** 9. 删除最近的一次历史路线导航记录 */
+    /** 9. 删除最早的一次历史路线导航记录 */
     private fun initFile9(forceRecreate: Boolean = false) {
         val file = File(context.filesDir, FILE_9_DELETE_RECENT_ROUTE)
         if (!file.exists() || forceRecreate) {
             val data = JSONObject().apply {
                 put("deleted", false)
                 put("routeId", "")
+                put("timestamp", 0L)
             }
             file.writeText(data.toString(4))
             Log.d(TAG, "创建文件: $FILE_9_DELETE_RECENT_ROUTE")
@@ -364,7 +365,7 @@ class AgentDataManager(private val context: Context) {
         }
     }
 
-    /** 21. 告诉我最近的一家四星级酒店名字 */
+    /** 21. 告诉我最近的一家四星级酒店名字（根据简介看） */
     private fun initFile21(forceRecreate: Boolean = false) {
         val file = File(context.filesDir, FILE_21_NEAREST_FOUR_STAR_HOTEL)
         if (!file.exists() || forceRecreate) {
@@ -403,14 +404,14 @@ class AgentDataManager(private val context: Context) {
         }
     }
 
-    /** 24. 告诉我距离 武汉市公安局（江岸分局）的周边美食排行榜第一名步行需要多久 */
+    /** 24. 告诉我现在的位置，距离武汉市公安局（江岸分局）的周边美食排行榜第一名驾车需要几分钟 */
     private fun initFile24(forceRecreate: Boolean = false) {
         val file = File(context.filesDir, FILE_24_WALKING_TIME_TO_FOOD)
         if (!file.exists() || forceRecreate) {
             val data = JSONObject().apply {
                 put("location", "")
                 put("topFood", "")
-                put("walkingMinutes", 0)
+                put("drivingMinutes", 0)
             }
             file.writeText(data.toString(4))
             Log.d(TAG, "创建文件: $FILE_24_WALKING_TIME_TO_FOOD")
@@ -484,5 +485,340 @@ class AgentDataManager(private val context: Context) {
             file.writeText(data.toString(4))
             Log.d(TAG, "创建文件: $FILE_29_MULTI_STOP_NAVIGATION")
         }
+    }
+
+    // ==================== 文件更新方法 ====================
+
+    /** 更新文件1：美食排行榜评分最高的美食 */
+    fun updateFile1(name: String, rating: Double, category: String, address: String) {
+        val file = File(context.filesDir, FILE_1_HIGHEST_SCORE_FOOD)
+        val data = JSONObject().apply {
+            put("name", name)
+            put("rating", rating)
+            put("category", category)
+            put("address", address)
+        }
+        file.writeText(data.toString(4))
+        Log.d(TAG, "更新文件: $FILE_1_HIGHEST_SCORE_FOOD")
+    }
+
+    /** 更新文件2：最近一次导航目的地 */
+    fun updateFile2(destination: String, timestamp: Long) {
+        val file = File(context.filesDir, FILE_2_LAST_NAVIGATION)
+        val data = JSONObject().apply {
+            put("destination", destination)
+            put("timestamp", timestamp)
+        }
+        file.writeText(data.toString(4))
+        Log.d(TAG, "更新文件: $FILE_2_LAST_NAVIGATION")
+    }
+
+    /** 更新文件3：账号信息 */
+    fun updateFile3(userId: String, userName: String) {
+        val file = File(context.filesDir, FILE_3_ACCOUNT_INFO)
+        val data = JSONObject().apply {
+            put("userId", userId)
+            put("userName", userName)
+        }
+        file.writeText(data.toString(4))
+        Log.d(TAG, "更新文件: $FILE_3_ACCOUNT_INFO")
+    }
+
+    /** 更新文件4：周边最近的酒店 */
+    fun updateFile4(name: String, distance: Double) {
+        val file = File(context.filesDir, FILE_4_NEAREST_HOTEL)
+        val data = JSONObject().apply {
+            put("name", name)
+            put("distance", distance)
+        }
+        file.writeText(data.toString(4))
+        Log.d(TAG, "更新文件: $FILE_4_NEAREST_HOTEL")
+    }
+
+    /** 更新文件5：收藏夹地点数量 */
+    fun updateFile5(count: Int) {
+        val file = File(context.filesDir, FILE_5_FAVORITES_COUNT)
+        val data = JSONObject().apply {
+            put("count", count)
+        }
+        file.writeText(data.toString(4))
+        Log.d(TAG, "更新文件: $FILE_5_FAVORITES_COUNT")
+    }
+
+    /** 更新文件6：修改用户名 */
+    fun updateFile6(userName: String, modified: Boolean) {
+        val file = File(context.filesDir, FILE_6_MODIFY_USERNAME)
+        val data = JSONObject().apply {
+            put("userName", userName)
+            put("modified", modified)
+        }
+        file.writeText(data.toString(4))
+        Log.d(TAG, "更新文件: $FILE_6_MODIFY_USERNAME")
+    }
+
+    /** 更新文件7：步行导航去M+购物中心 */
+    fun updateFile7(destination: String, started: Boolean) {
+        val file = File(context.filesDir, FILE_7_NAVIGATE_TO_DESTINATION)
+        val data = JSONObject().apply {
+            put("destination", destination)
+            put("started", started)
+        }
+        file.writeText(data.toString(4))
+        Log.d(TAG, "更新文件: $FILE_7_NAVIGATE_TO_DESTINATION")
+    }
+
+    /** 更新文件8：打开夜间模式 */
+    fun updateFile8(mode: String, opened: Boolean) {
+        val file = File(context.filesDir, FILE_8_OPEN_BRIGHT_MODE)
+        val data = JSONObject().apply {
+            put("mode", mode)
+            put("opened", opened)
+        }
+        file.writeText(data.toString(4))
+        Log.d(TAG, "更新文件: $FILE_8_OPEN_BRIGHT_MODE")
+    }
+
+    /** 更新文件9：删除最早的历史导航记录 */
+    fun updateFile9(deleted: Boolean, routeId: String, timestamp: Long) {
+        val file = File(context.filesDir, FILE_9_DELETE_RECENT_ROUTE)
+        val data = JSONObject().apply {
+            put("deleted", deleted)
+            put("routeId", routeId)
+            put("timestamp", timestamp)
+        }
+        file.writeText(data.toString(4))
+        Log.d(TAG, "更新文件: $FILE_9_DELETE_RECENT_ROUTE")
+    }
+
+    /** 更新文件10：收藏周边最近的餐馆 */
+    fun updateFile10(name: String, favorited: Boolean) {
+        val file = File(context.filesDir, FILE_10_FAVORITE_NEAREST_RESTAURANT)
+        val data = JSONObject().apply {
+            put("name", name)
+            put("favorited", favorited)
+        }
+        file.writeText(data.toString(4))
+        Log.d(TAG, "更新文件: $FILE_10_FAVORITE_NEAREST_RESTAURANT")
+    }
+
+    /** 更新文件11：步行到最近酒店时间 */
+    fun updateFile11(hotelName: String, walkingMinutes: Int) {
+        val file = File(context.filesDir, FILE_11_WALKING_TIME_TO_HOTEL)
+        val data = JSONObject().apply {
+            put("hotelName", hotelName)
+            put("walkingMinutes", walkingMinutes)
+        }
+        file.writeText(data.toString(4))
+        Log.d(TAG, "更新文件: $FILE_11_WALKING_TIME_TO_HOTEL")
+    }
+
+    /** 更新文件12：开放时间 */
+    fun updateFile12(poiName: String, openingHours: Int) {
+        val file = File(context.filesDir, FILE_12_OPENING_HOURS)
+        val data = JSONObject().apply {
+            put("poiName", poiName)
+            put("openingHours", openingHours)
+        }
+        file.writeText(data.toString(4))
+        Log.d(TAG, "更新文件: $FILE_12_OPENING_HOURS")
+    }
+
+    /** 更新文件13：地点地址 */
+    fun updateFile13(poiName: String, address: String) {
+        val file = File(context.filesDir, FILE_13_POI_ADDRESS)
+        val data = JSONObject().apply {
+            put("poiName", poiName)
+            put("address", address)
+        }
+        file.writeText(data.toString(4))
+        Log.d(TAG, "更新文件: $FILE_13_POI_ADDRESS")
+    }
+
+    /** 更新文件14：美食排行榜第一的电话 */
+    fun updateFile14(name: String, phone: String) {
+        val file = File(context.filesDir, FILE_14_TOP_FOOD_PHONE)
+        val data = JSONObject().apply {
+            put("name", name)
+            put("phone", phone)
+        }
+        file.writeText(data.toString(4))
+        Log.d(TAG, "更新文件: $FILE_14_TOP_FOOD_PHONE")
+    }
+
+    /** 更新文件15：收藏的第一行饭店名称 */
+    fun updateFile15(name: String) {
+        val file = File(context.filesDir, FILE_15_FIRST_FAVORITE_RESTAURANT)
+        val data = JSONObject().apply {
+            put("name", name)
+        }
+        file.writeText(data.toString(4))
+        Log.d(TAG, "更新文件: $FILE_15_FIRST_FAVORITE_RESTAURANT")
+    }
+
+    /** 更新文件16：步行导航去最近美食店 */
+    fun updateFile16(destination: String, mode: String, started: Boolean) {
+        val file = File(context.filesDir, FILE_16_WALK_TO_NEAREST_FOOD)
+        val data = JSONObject().apply {
+            put("destination", destination)
+            put("mode", mode)
+            put("started", started)
+        }
+        file.writeText(data.toString(4))
+        Log.d(TAG, "更新文件: $FILE_16_WALK_TO_NEAREST_FOOD")
+    }
+
+    /** 更新文件17：从M+导航到我的位置 */
+    fun updateFile17(from: String, to: String, started: Boolean) {
+        val file = File(context.filesDir, FILE_17_NAVIGATE_FROM_POI)
+        val data = JSONObject().apply {
+            put("from", from)
+            put("to", to)
+            put("started", started)
+        }
+        file.writeText(data.toString(4))
+        Log.d(TAG, "更新文件: $FILE_17_NAVIGATE_FROM_POI")
+    }
+
+    /** 更新文件18：添加途经点群芳园 */
+    fun updateFile18(destination: String, waypoint: String, added: Boolean) {
+        val file = File(context.filesDir, FILE_18_ADD_WAYPOINT_QUNFANGYUAN)
+        val data = JSONObject().apply {
+            put("destination", destination)
+            put("waypoint", waypoint)
+            put("added", added)
+        }
+        file.writeText(data.toString(4))
+        Log.d(TAG, "更新文件: $FILE_18_ADD_WAYPOINT_QUNFANGYUAN")
+    }
+
+    /** 更新文件19：拨打景点电话 */
+    fun updateFile19(name: String, phone: String, called: Boolean) {
+        val file = File(context.filesDir, FILE_19_CALL_TOP_ATTRACTION)
+        val data = JSONObject().apply {
+            put("name", name)
+            put("phone", phone)
+            put("called", called)
+        }
+        file.writeText(data.toString(4))
+        Log.d(TAG, "更新文件: $FILE_19_CALL_TOP_ATTRACTION")
+    }
+
+    /** 更新文件20：收藏周边景点 */
+    fun updateFile20(count: Int, favorited: Boolean) {
+        val file = File(context.filesDir, FILE_20_FAVORITE_NEARBY_ATTRACTIONS)
+        val data = JSONObject().apply {
+            put("count", count)
+            put("favorited", favorited)
+        }
+        file.writeText(data.toString(4))
+        Log.d(TAG, "更新文件: $FILE_20_FAVORITE_NEARBY_ATTRACTIONS")
+    }
+
+    /** 更新文件21：最近的四星级酒店 */
+    fun updateFile21(name: String, rating: Int) {
+        val file = File(context.filesDir, FILE_21_NEAREST_FOUR_STAR_HOTEL)
+        val data = JSONObject().apply {
+            put("name", name)
+            put("rating", rating)
+        }
+        file.writeText(data.toString(4))
+        Log.d(TAG, "更新文件: $FILE_21_NEAREST_FOUR_STAR_HOTEL")
+    }
+
+    /** 更新文件22：停车费用 */
+    fun updateFile22(poiName: String, parkingFee: String) {
+        val file = File(context.filesDir, FILE_22_PARKING_FEE)
+        val data = JSONObject().apply {
+            put("poiName", poiName)
+            put("parkingFee", parkingFee)
+        }
+        file.writeText(data.toString(4))
+        Log.d(TAG, "更新文件: $FILE_22_PARKING_FEE")
+    }
+
+    /** 更新文件23：周边美食排行榜第一 */
+    fun updateFile23(location: String, topFood: String) {
+        val file = File(context.filesDir, FILE_23_FOOD_NEAR_LOCATION)
+        val data = JSONObject().apply {
+            put("location", location)
+            put("topFood", topFood)
+        }
+        file.writeText(data.toString(4))
+        Log.d(TAG, "更新文件: $FILE_23_FOOD_NEAR_LOCATION")
+    }
+
+    /** 更新文件24：驾车到美食店时间 */
+    fun updateFile24(location: String, topFood: String, drivingMinutes: Int) {
+        val file = File(context.filesDir, FILE_24_WALKING_TIME_TO_FOOD)
+        val data = JSONObject().apply {
+            put("location", location)
+            put("topFood", topFood)
+            put("drivingMinutes", drivingMinutes)
+        }
+        file.writeText(data.toString(4))
+        Log.d(TAG, "更新文件: $FILE_24_WALKING_TIME_TO_FOOD")
+    }
+
+    /** 更新文件25：骑行导航去收藏饭店 */
+    fun updateFile25(destination: String, mode: String, started: Boolean) {
+        val file = File(context.filesDir, FILE_25_CYCLE_TO_FAVORITE)
+        val data = JSONObject().apply {
+            put("destination", destination)
+            put("mode", mode)
+            put("started", started)
+        }
+        file.writeText(data.toString(4))
+        Log.d(TAG, "更新文件: $FILE_25_CYCLE_TO_FAVORITE")
+    }
+
+    /** 更新文件26：步行导航去最近去过的餐馆 */
+    fun updateFile26(destination: String, mode: String, started: Boolean) {
+        val file = File(context.filesDir, FILE_26_WALK_TO_RECENT_RESTAURANT)
+        val data = JSONObject().apply {
+            put("destination", destination)
+            put("mode", mode)
+            put("started", started)
+        }
+        file.writeText(data.toString(4))
+        Log.d(TAG, "更新文件: $FILE_26_WALK_TO_RECENT_RESTAURANT")
+    }
+
+    /** 更新文件27：添加收藏地点作为途经点 */
+    fun updateFile27(destination: String, waypoint: String, added: Boolean) {
+        val file = File(context.filesDir, FILE_27_ADD_FAVORITE_AS_WAYPOINT)
+        val data = JSONObject().apply {
+            put("destination", destination)
+            put("waypoint", waypoint)
+            put("added", added)
+        }
+        file.writeText(data.toString(4))
+        Log.d(TAG, "更新文件: $FILE_27_ADD_FAVORITE_AS_WAYPOINT")
+    }
+
+    /** 更新文件28：添加多个途经点 */
+    fun updateFile28(destination: String, waypoints: List<String>, added: Boolean) {
+        val file = File(context.filesDir, FILE_28_ADD_MULTIPLE_WAYPOINTS)
+        val waypointsArray = JSONArray()
+        waypoints.forEach { waypointsArray.put(it) }
+        val data = JSONObject().apply {
+            put("destination", destination)
+            put("waypoints", waypointsArray)
+            put("added", added)
+        }
+        file.writeText(data.toString(4))
+        Log.d(TAG, "更新文件: $FILE_28_ADD_MULTIPLE_WAYPOINTS")
+    }
+
+    /** 更新文件29：多站点路线导航 */
+    fun updateFile29(stops: List<String>, completed: Boolean) {
+        val file = File(context.filesDir, FILE_29_MULTI_STOP_NAVIGATION)
+        val stopsArray = JSONArray()
+        stops.forEach { stopsArray.put(it) }
+        val data = JSONObject().apply {
+            put("stops", stopsArray)
+            put("completed", completed)
+        }
+        file.writeText(data.toString(4))
+        Log.d(TAG, "更新文件: $FILE_29_MULTI_STOP_NAVIGATION")
     }
 }

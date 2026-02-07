@@ -3,6 +3,7 @@ package com.example.amap_sim.ui.screen.mapcontainer.overlay.favorites
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.amap_sim.data.local.AgentDataManager
 import com.example.amap_sim.data.local.OfflineSearchService
 import com.example.amap_sim.di.ServiceLocator
 import com.example.amap_sim.domain.model.PoiResult
@@ -25,6 +26,7 @@ class FavoritesViewModel : ViewModel() {
 
     private val searchService: OfflineSearchService = ServiceLocator.searchService
     private val userDataManager = ServiceLocator.userDataManager
+    private val agentDataManager: AgentDataManager = ServiceLocator.agentDataManager
 
     private val _uiState = MutableStateFlow(FavoritesUiState())
     val uiState: StateFlow<FavoritesUiState> = _uiState.asStateFlow()
@@ -38,6 +40,8 @@ class FavoritesViewModel : ViewModel() {
 
     /**
      * 加载收藏列表
+     *
+     * 同时更新 AgentDataManager 的文件5（指令5：告诉我收藏夹收藏了几个地点）
      */
     fun loadFavorites() {
         viewModelScope.launch {
@@ -67,6 +71,10 @@ class FavoritesViewModel : ViewModel() {
                         result.getOrNull()?.let { favorites.add(it) }
                     }
                 }
+
+                // 更新 Agent 数据文件5（指令5检测用）
+                agentDataManager.updateFile5(favorites.size)
+                Log.d(TAG, "已更新 Agent 文件5: count=${favorites.size}")
 
                 _uiState.update {
                     it.copy(

@@ -3,6 +3,7 @@ package com.example.amap_sim.ui.screen.mapcontainer.overlay.detail
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.amap_sim.data.local.AgentDataManager
 import com.example.amap_sim.data.local.OfflineSearchService
 import com.example.amap_sim.di.ServiceLocator
 import com.example.amap_sim.domain.model.LatLng
@@ -27,9 +28,10 @@ class DetailViewModel : ViewModel() {
     companion object {
         private const val TAG = "DetailViewModel"
     }
-    
+
     private val searchService: OfflineSearchService = ServiceLocator.searchService
     private val userDataManager = ServiceLocator.userDataManager
+    private val agentDataManager: AgentDataManager = ServiceLocator.agentDataManager
 
     private val _uiState = MutableStateFlow(DetailUiState())
     val uiState: StateFlow<DetailUiState> = _uiState.asStateFlow()
@@ -222,6 +224,9 @@ class DetailViewModel : ViewModel() {
     
     /**
      * 切换收藏状态
+     *
+     * 同时更新 AgentDataManager 的文件10（指令10：收藏周边最近的餐馆）
+     * 和文件5（指令5：告诉我收藏夹收藏了几个地点）
      */
     private fun toggleFavorite() {
         viewModelScope.launch {
@@ -230,9 +235,21 @@ class DetailViewModel : ViewModel() {
 
             if (newFavoriteState) {
                 userDataManager.addFavorite(currentPoiId)
+
+                // 如果收藏的是餐馆，更新文件10
+                val poi = _uiState.value.poi
+                if (poi != null && (poi.category.contains("餐") || poi.category.contains("美食"))) {
+                    agentDataManager.updateFile10(poi.name, true)
+                    Log.d(TAG, "已更新 Agent 文件10: name=${poi.name}, favorited=true")
+                }
             } else {
                 userDataManager.removeFavorite(currentPoiId)
             }
+
+            // 更新文件5（收藏数量）
+            val favoriteCount = userDataManager.getFavorites().size
+            agentDataManager.updateFile5(favoriteCount)
+            Log.d(TAG, "已更新 Agent 文件5: count=$favoriteCount")
         }
     }
     
@@ -255,8 +272,19 @@ class DetailViewModel : ViewModel() {
 
     /**
      * 确认拨打电话
+     *
+     * 同时更新 AgentDataManager 的文件19（指令19：拨打周边景点排行榜第一的景点电话）
      */
     private fun confirmCallPhone() {
+        val poi = _uiState.value.poi
+        val phone = poi?.phone
+        if (poi != null && !phone.isNullOrEmpty()) {
+            // 如果是景点，更新文件19
+            if (poi.category.contains("景点") || poi.category.contains("旅游")) {
+                agentDataManager.updateFile19(poi.name, phone, true)
+                Log.d(TAG, "已更新 Agent 文件19: name=${poi.name}, phone=$phone, called=true")
+            }
+        }
         _uiState.update { it.copy(showPhoneDialog = false, showCallSuccess = true) }
     }
 

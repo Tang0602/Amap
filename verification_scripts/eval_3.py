@@ -1,6 +1,10 @@
 """
 指令 3 验证脚本：告诉我账号的名字和id
 
+答案：
+- 名字：高德用户
+- id：284834783
+
 功能说明：
 - 验证应用是否正确记录了用户账号的名字和 ID 信息
 - 通过 ADB 读取应用私有存储中的 JSON 文件
@@ -17,6 +21,10 @@
 import json
 import subprocess
 import sys
+
+# 预设的正确答案
+EXPECTED_USER_NAME = "高德用户"
+EXPECTED_USER_ID = "284834783"
 
 
 def verify_account_info(device_id=None):
@@ -85,6 +93,20 @@ def verify_account_info(device_id=None):
         if not user_name or user_name == "":
             print("❌ FAIL: 'userName' 字段为空")
             print(f"   当前值: '{user_name}'")
+            return False
+
+        # 验证用户ID是否完全匹配预设答案
+        if str(user_id) != EXPECTED_USER_ID:
+            print("❌ FAIL: 用户ID不匹配预期答案")
+            print(f"   预期答案: {EXPECTED_USER_ID}")
+            print(f"   实际结果: {user_id}")
+            return False
+
+        # 验证用户名是否完全匹配预设答案
+        if str(user_name) != EXPECTED_USER_NAME:
+            print("❌ FAIL: 用户名不匹配预期答案")
+            print(f"   预期答案: {EXPECTED_USER_NAME}")
+            print(f"   实际结果: {user_name}")
             return False
 
         # 验证通过，输出结果

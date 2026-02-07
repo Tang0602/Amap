@@ -3,8 +3,10 @@ package com.example.amap_sim.ui.screen.profile
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.amap_sim.data.local.AgentDataManager
 import com.example.amap_sim.data.local.UserDataManager
 import com.example.amap_sim.di.ServiceLocator
+import com.example.amap_sim.domain.model.RouteHistory
 import com.example.amap_sim.domain.model.UserProfile
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,6 +24,7 @@ class ProfileViewModel : ViewModel() {
     }
 
     private val userDataManager: UserDataManager = ServiceLocator.userDataManager
+    private val agentDataManager: AgentDataManager = ServiceLocator.agentDataManager
 
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
@@ -128,12 +131,22 @@ class ProfileViewModel : ViewModel() {
 
     /**
      * 更新名字
+     *
+     * 同时更新：
+     * 1. UserDataManager 中的用户资料
+     * 2. AgentDataManager 的文件6（指令6：修改我的名字为123456）
      */
     private fun updateName(name: String) {
         viewModelScope.launch {
             try {
+                // 更新用户资料
                 val updatedProfile = _uiState.value.userProfile.copy(userName = name)
                 userDataManager.updateUserProfile(updatedProfile)
+
+                // 更新 Agent 数据文件6（指令6检测用）
+                agentDataManager.updateFile6(name, true)
+                Log.d(TAG, "已更新 Agent 文件6: userName=$name, modified=true")
+
                 _uiState.update {
                     it.copy(
                         userProfile = updatedProfile,
@@ -150,12 +163,21 @@ class ProfileViewModel : ViewModel() {
 
     /**
      * 更新用户 ID
+     *
+     * 同时更新：
+     * 1. UserDataManager 中的用户资料
+     * 2. AgentDataManager 的文件3（指令3：告诉我账号的名字和id）
      */
     private fun updateUserId(userId: String) {
         viewModelScope.launch {
             try {
                 val updatedProfile = _uiState.value.userProfile.copy(userId = userId)
                 userDataManager.updateUserProfile(updatedProfile)
+
+                // 更新 Agent 数据文件3（指令3检测用）
+                agentDataManager.updateFile3(userId, updatedProfile.userName)
+                Log.d(TAG, "已更新 Agent 文件3: userId=$userId, userName=${updatedProfile.userName}")
+
                 _uiState.update {
                     it.copy(
                         userProfile = updatedProfile,
@@ -172,12 +194,30 @@ class ProfileViewModel : ViewModel() {
 
     /**
      * 删除历史路线
+     *
+     * 同时更新：
+     * 1. UserDataManager 中删除历史路线
+     * 2. AgentDataManager 的文件9（指令9：删除最早的一次历史路线导航记录）
      */
     private fun deleteRouteHistory(id: String) {
         viewModelScope.launch {
             try {
+                // 找到要删除的路线（获取时间戳）
+                val routeToDelete = _uiState.value.routeHistory.find { it.id == id }
+
                 userDataManager.deleteRouteHistory(id)
                 val updatedHistory = _uiState.value.routeHistory.filter { it.id != id }
+
+                // 如果这是最早的一次历史记录删除，更新 Agent 数据文件9
+                if (routeToDelete != null) {
+                    agentDataManager.updateFile9(
+                        deleted = true,
+                        routeId = id,
+                        timestamp = routeToDelete.timestamp
+                    )
+                    Log.d(TAG, "已更新 Agent 文件9: deleted=true, routeId=$id, timestamp=${routeToDelete.timestamp}")
+                }
+
                 _uiState.update { it.copy(routeHistory = updatedHistory) }
             } catch (e: Exception) {
                 Log.e(TAG, "删除历史路线失败", e)
@@ -195,11 +235,26 @@ class ProfileViewModel : ViewModel() {
 
     /**
      * 切换主题
+     *
+     * 同时更新：
+     * 1. UserDataManager 中保存主题设置
+     * 2. AgentDataManager 的文件8（指令8：打开明亮模式/夜间模式）
      */
     private fun changeTheme(theme: com.example.amap_sim.data.local.AppTheme) {
         viewModelScope.launch {
             try {
                 userDataManager.saveTheme(theme)
+
+                // 更新 Agent 数据文件8（指令8检测用）
+                // 映射主题到模式描述
+                val modeDescription = when (theme) {
+                    com.example.amap_sim.data.local.AppTheme.BRIGHT -> "明亮模式"
+                    com.example.amap_sim.data.local.AppTheme.NIGHT -> "夜间模式"
+                    com.example.amap_sim.data.local.AppTheme.EYE_CARE -> "护眼模式"
+                }
+                agentDataManager.updateFile8(modeDescription, true)
+                Log.d(TAG, "已更新 Agent 文件8: mode=$modeDescription, opened=true")
+
                 _uiState.update { it.copy(currentTheme = theme) }
             } catch (e: Exception) {
                 Log.e(TAG, "切换主题失败", e)
