@@ -419,7 +419,8 @@ class RouteViewModel : ViewModel() {
      * 开始导航
      *
      * 同时更新 AgentDataManager 的文件7（指令7：步行导航去M+购物中心）
-     * 和文件16（指令16：步行导航去周边最近的美食店）
+     * 文件16（指令16：步行导航去肖记公安牛肉鱼杂馆）
+     * 文件17（指令17：从M+购物中心导航到我的位置）
      */
     private fun startNavigation() {
         val routeResult = _uiState.value.routeResult ?: return
@@ -427,9 +428,13 @@ class RouteViewModel : ViewModel() {
         val endLocation = _uiState.value.endLocation ?: return
         val selectedProfile = _uiState.value.selectedProfile
 
-        // 获取目的地名称和导航方式
+        // 获取起点和目的地名称
+        val startName = when (startLocation) {
+            is LocationInput.CurrentLocation -> "我的位置"
+            is LocationInput.SpecificLocation -> startLocation.name
+        }
         val destinationName = when (endLocation) {
-            is LocationInput.CurrentLocation -> "当前位置"
+            is LocationInput.CurrentLocation -> "我的位置"
             is LocationInput.SpecificLocation -> endLocation.name
         }
         val transportMode = selectedProfile.displayName  // "步行", "骑行", or "驾车"
@@ -443,6 +448,12 @@ class RouteViewModel : ViewModel() {
         if (destinationName == "肖记公安牛肉鱼杂馆" && selectedProfile == TravelProfile.FOOT) {
             agentDataManager.updateFile16(destinationName, transportMode, true)
             Log.d(TAG, "已更新 Agent 文件16: destination=$destinationName, mode=$transportMode, started=true")
+        }
+
+        // 更新 Agent 数据文件17（指令17检测用：从M+购物中心导航到我的位置）
+        if (startName == "M+购物中心" && endLocation is LocationInput.CurrentLocation) {
+            agentDataManager.updateFile17(startName, destinationName, true)
+            Log.d(TAG, "已更新 Agent 文件17: from=$startName, to=$destinationName, started=true")
         }
 
         viewModelScope.launch {
