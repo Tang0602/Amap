@@ -3,6 +3,7 @@ package com.example.amap_sim.ui.screen.mapcontainer.overlay.route
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.amap_sim.data.local.AgentDataManager
 import com.example.amap_sim.data.local.BRouterService
 import com.example.amap_sim.data.local.OfflineSearchService
 import com.example.amap_sim.di.ServiceLocator
@@ -35,6 +36,7 @@ class RouteViewModel : ViewModel() {
     // 使用 BRouter 路由服务
     private val routingService: BRouterService = ServiceLocator.brouterService
     private val searchService: OfflineSearchService = ServiceLocator.searchService
+    private val agentDataManager: AgentDataManager = ServiceLocator.agentDataManager
     
     private val _uiState = MutableStateFlow(RouteUiState())
     val uiState: StateFlow<RouteUiState> = _uiState.asStateFlow()
@@ -415,11 +417,27 @@ class RouteViewModel : ViewModel() {
     
     /**
      * 开始导航
+     *
+     * 同时更新 AgentDataManager 的文件7（指令7：步行导航去M+购物中心）
      */
     private fun startNavigation() {
         val routeResult = _uiState.value.routeResult ?: return
         val startLocation = _uiState.value.startLocation
         val endLocation = _uiState.value.endLocation ?: return
+        val selectedProfile = _uiState.value.selectedProfile
+
+        // 更新 Agent 数据文件7（指令7检测用）
+        // 获取目的地名称和导航方式
+        val destinationName = when (endLocation) {
+            is LocationInput.CurrentLocation -> "当前位置"
+            is LocationInput.SpecificLocation -> endLocation.name
+        }
+        val transportMode = selectedProfile.displayName  // "步行", "骑行", or "驾车"
+        val fullDestination = "$transportMode 到 $destinationName"
+
+        agentDataManager.updateFile7(fullDestination, true)
+        Log.d(TAG, "已更新 Agent 文件7: destination=$fullDestination, started=true")
+
         viewModelScope.launch {
             _navigationEvent.emit(RouteNavigationEvent.StartNavigation(routeResult, startLocation, endLocation))
         }

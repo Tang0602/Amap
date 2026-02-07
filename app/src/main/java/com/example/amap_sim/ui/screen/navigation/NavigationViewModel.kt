@@ -4,6 +4,8 @@ import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.amap_sim.data.local.AgentDataManager
+import com.example.amap_sim.di.ServiceLocator
 import com.example.amap_sim.domain.model.LatLng
 import com.example.amap_sim.domain.model.RouteResult
 import com.example.amap_sim.ui.components.map.MapCommand
@@ -36,21 +38,23 @@ class NavigationViewModel(
     
     companion object {
         private const val TAG = "NavigationViewModel"
-        
+
         // 模拟导航的更新间隔（毫秒）
         private const val SIMULATION_INTERVAL = 1000L
-        
+
         // 模拟速度（米/秒）
         private const val SIMULATION_SPEED_CAR = 11.0      // ~40 km/h
         private const val SIMULATION_SPEED_BIKE = 4.0     // ~15 km/h
         private const val SIMULATION_SPEED_FOOT = 1.4     // ~5 km/h
-        
+
         // 到达下一指令的阈值（米）
         private const val INSTRUCTION_THRESHOLD = 30.0
-        
+
         // 到达目的地的阈值（米）
         private const val ARRIVAL_THRESHOLD = 20.0
     }
+
+    private val agentDataManager: AgentDataManager = ServiceLocator.agentDataManager
     
     private val _uiState = MutableStateFlow(NavigationUiState())
     val uiState: StateFlow<NavigationUiState> = _uiState.asStateFlow()
@@ -135,14 +139,14 @@ class NavigationViewModel(
      */
     private fun startNavigation() {
         Log.i(TAG, "开始导航")
-        
+
         _uiState.update {
             it.copy(
                 navigationState = NavigationState.NAVIGATING,
                 isFollowingUser = true
             )
         }
-        
+
         // 启动模拟导航
         startSimulation()
     }
