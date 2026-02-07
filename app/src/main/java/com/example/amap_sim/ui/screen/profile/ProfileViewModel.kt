@@ -197,25 +197,28 @@ class ProfileViewModel : ViewModel() {
      *
      * 同时更新：
      * 1. UserDataManager 中删除历史路线
-     * 2. AgentDataManager 的文件9（指令9：删除最早的一次历史路线导航记录）
+     * 2. AgentDataManager 的文件9（指令9：删除导航到M+购物中心的历史记录）
      */
     private fun deleteRouteHistory(id: String) {
         viewModelScope.launch {
             try {
-                // 找到要删除的路线（获取时间戳）
+                // 找到要删除的路线
                 val routeToDelete = _uiState.value.routeHistory.find { it.id == id }
 
                 userDataManager.deleteRouteHistory(id)
                 val updatedHistory = _uiState.value.routeHistory.filter { it.id != id }
 
-                // 如果这是最早的一次历史记录删除，更新 Agent 数据文件9
-                if (routeToDelete != null) {
+                // 只有当删除的是目的地为"M+购物中心"的历史记录时，才更新 Agent 数据文件9
+                if (routeToDelete != null && routeToDelete.endName == "M+购物中心") {
                     agentDataManager.updateFile9(
                         deleted = true,
+                        destinationName = routeToDelete.endName,
                         routeId = id,
                         timestamp = routeToDelete.timestamp
                     )
-                    Log.d(TAG, "已更新 Agent 文件9: deleted=true, routeId=$id, timestamp=${routeToDelete.timestamp}")
+                    Log.d(TAG, "已更新 Agent 文件9（删除了到M+购物中心的记录）: deleted=true, destinationName=${routeToDelete.endName}, routeId=$id, timestamp=${routeToDelete.timestamp}")
+                } else {
+                    Log.d(TAG, "删除的不是到M+购物中心的记录，不更新 Agent 文件9: routeId=$id, endName=${routeToDelete?.endName}")
                 }
 
                 _uiState.update { it.copy(routeHistory = updatedHistory) }

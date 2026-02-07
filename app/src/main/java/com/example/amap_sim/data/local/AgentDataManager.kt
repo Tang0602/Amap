@@ -205,12 +205,13 @@ class AgentDataManager(private val context: Context) {
         }
     }
 
-    /** 9. 删除最早的一次历史路线导航记录 */
+    /** 9. 删除导航到M+购物中心的历史记录 */
     private fun initFile9(forceRecreate: Boolean = false) {
         val file = File(context.filesDir, FILE_9_DELETE_RECENT_ROUTE)
         if (!file.exists() || forceRecreate) {
             val data = JSONObject().apply {
                 put("deleted", false)
+                put("destinationName", "")
                 put("routeId", "")
                 put("timestamp", 0L)
             }
@@ -578,11 +579,12 @@ class AgentDataManager(private val context: Context) {
         Log.d(TAG, "更新文件: $FILE_8_OPEN_BRIGHT_MODE")
     }
 
-    /** 更新文件9：删除最早的历史导航记录 */
-    fun updateFile9(deleted: Boolean, routeId: String, timestamp: Long) {
+    /** 更新文件9：删除导航到M+购物中心的历史记录 */
+    fun updateFile9(deleted: Boolean, destinationName: String, routeId: String, timestamp: Long) {
         val file = File(context.filesDir, FILE_9_DELETE_RECENT_ROUTE)
         val data = JSONObject().apply {
             put("deleted", deleted)
+            put("destinationName", destinationName)
             put("routeId", routeId)
             put("timestamp", timestamp)
         }
