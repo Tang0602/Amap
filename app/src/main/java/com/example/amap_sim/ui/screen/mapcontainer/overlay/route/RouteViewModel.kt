@@ -304,6 +304,8 @@ class RouteViewModel : ViewModel() {
     
     /**
      * 更新途径点（从添加途径点页面返回后调用）
+     *
+     * 同时更新 AgentDataManager 的文件18（指令18：在导航去滨江饭店的路线中添加途经点群芳园）
      */
     private fun updateWaypoints(
         startLocation: LocationInput,
@@ -320,6 +322,27 @@ class RouteViewModel : ViewModel() {
             )
         }
         Log.d(TAG, "updateWaypoints: 状态已更新，waypoints.size=${_uiState.value.waypoints.size}")
+
+        // 更新 Agent 数据文件18（指令18检测用：在导航去滨江饭店的路线中添加途经点群芳园）
+        val destinationName = when (endLocation) {
+            is LocationInput.CurrentLocation -> "我的位置"
+            is LocationInput.SpecificLocation -> endLocation.name
+            null -> ""
+        }
+
+        // 检查是否添加了群芳园作为途经点，且目的地是滨江饭店
+        val hasQunfangyuan = waypoints.any { waypoint ->
+            when (waypoint) {
+                is LocationInput.SpecificLocation -> waypoint.name == "群芳园"
+                else -> false
+            }
+        }
+
+        if (destinationName == "滨江饭店" && hasQunfangyuan) {
+            agentDataManager.updateFile18(destinationName, "群芳园", true)
+            Log.d(TAG, "已更新 Agent 文件18: destination=$destinationName, waypoint=群芳园, added=true")
+        }
+
         // 如果终点已设置，自动计算路线
         if (endLocation != null) {
             calculateRoute()
