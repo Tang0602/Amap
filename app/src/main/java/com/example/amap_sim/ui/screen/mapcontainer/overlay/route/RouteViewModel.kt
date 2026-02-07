@@ -419,6 +419,7 @@ class RouteViewModel : ViewModel() {
      * 开始导航
      *
      * 同时更新 AgentDataManager 的文件7（指令7：步行导航去M+购物中心）
+     * 和文件16（指令16：步行导航去周边最近的美食店）
      */
     private fun startNavigation() {
         val routeResult = _uiState.value.routeResult ?: return
@@ -426,7 +427,6 @@ class RouteViewModel : ViewModel() {
         val endLocation = _uiState.value.endLocation ?: return
         val selectedProfile = _uiState.value.selectedProfile
 
-        // 更新 Agent 数据文件7（指令7检测用）
         // 获取目的地名称和导航方式
         val destinationName = when (endLocation) {
             is LocationInput.CurrentLocation -> "当前位置"
@@ -435,8 +435,15 @@ class RouteViewModel : ViewModel() {
         val transportMode = selectedProfile.displayName  // "步行", "骑行", or "驾车"
         val fullDestination = "$transportMode 到 $destinationName"
 
+        // 更新 Agent 数据文件7（指令7检测用）
         agentDataManager.updateFile7(fullDestination, true)
         Log.d(TAG, "已更新 Agent 文件7: destination=$fullDestination, started=true")
+
+        // 更新 Agent 数据文件16（指令16检测用：步行导航去肖记公安牛肉鱼杂馆）
+        if (destinationName == "肖记公安牛肉鱼杂馆" && selectedProfile == TravelProfile.FOOT) {
+            agentDataManager.updateFile16(destinationName, transportMode, true)
+            Log.d(TAG, "已更新 Agent 文件16: destination=$destinationName, mode=$transportMode, started=true")
+        }
 
         viewModelScope.launch {
             _navigationEvent.emit(RouteNavigationEvent.StartNavigation(routeResult, startLocation, endLocation))
