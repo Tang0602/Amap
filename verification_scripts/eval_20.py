@@ -1,17 +1,22 @@
 """
 指令 20 验证脚本：收藏所有周边1km以内（包括1km）的所有景点
 
-答案：收藏了4个景点
+答案：收藏4个景点
+四个目标景点：
+      - 庚子革命烈士墓宣道牌坊
+      - 水生生物博物馆
+      - 董必武纪念像
+      - 烈士合葬墓
 
 功能说明：
 - 验证应用是否正确执行了收藏周边景点的任务
 - 通过 ADB 读取应用私有存储中的 JSON 文件
-- 检查 JSON 文件中是否包含必要的字段：count（数量）、favorited（是否已收藏）
+- 检查 JSON 文件中是否包含必要的字段：attractions（景点列表）、favorited（是否已收藏）
 
 验证逻辑：
 1. 使用 ADB 读取 20_favorite_nearby_attractions.json 文件
 2. 解析 JSON 内容
-3. 验证 count 字段包含 "4" 或 "四"
+3. 验证 attractions 字段包含四个目标景点
 4. 验证 favorited 字段为 true（表示已收藏）
 5. 返回验证结果（PASS/FAIL）
 """
@@ -20,8 +25,13 @@ import json
 import subprocess
 import sys
 
-# 预设的正确答案
-EXPECTED_COUNT = ["4", "四"]
+# 预设的正确答案：四个目标景点
+EXPECTED_ATTRACTIONS = [
+    "庚子革命烈士墓墓道牌坊",
+    "水生生物博物馆",
+    "董必武纪念像",
+    "烈士合葬墓"
+]
 
 
 def verify_favorite_nearby_attractions(device_id=None):
@@ -69,8 +79,8 @@ def verify_favorite_nearby_attractions(device_id=None):
         json_data = json.loads(stdout_text)
 
         # 验证必要字段是否存在
-        if "count" not in json_data:
-            print("❌ FAIL: 缺少 'count' 字段")
+        if "attractions" not in json_data:
+            print("❌ FAIL: 缺少 'attractions' 字段")
             return False
 
         if "favorited" not in json_data:
@@ -78,25 +88,26 @@ def verify_favorite_nearby_attractions(device_id=None):
             return False
 
         # 获取字段值
-        count = json_data["count"]
+        attractions = json_data["attractions"]
         favorited = json_data["favorited"]
 
-        # 将数量转换为字符串进行检查
-        count_str = str(count)
+        # 验证 attractions 是否为列表
+        if not isinstance(attractions, list):
+            print("❌ FAIL: 'attractions' 字段不是列表类型")
+            print(f"   实际类型: {type(attractions)}")
+            return False
 
-        # 验证数量是否包含预设答案中的任意一个
-        found_match = False
-        matched_answer = None
-        for expected in EXPECTED_COUNT:
-            if expected in count_str:
-                found_match = True
-                matched_answer = expected
-                break
+        # 验证是否包含所有四个目标景点
+        missing_attractions = []
+        for expected in EXPECTED_ATTRACTIONS:
+            if expected not in attractions:
+                missing_attractions.append(expected)
 
-        if not found_match:
-            print("❌ FAIL: 收藏数量中未包含预期答案")
-            print(f"   预期答案（任意一个）: {', '.join(EXPECTED_COUNT)}")
-            print(f"   实际结果: {count_str}")
+        if missing_attractions:
+            print("❌ FAIL: 缺少以下目标景点：")
+            for attraction in missing_attractions:
+                print(f"   - {attraction}")
+            print(f"\n   实际收藏的景点: {attractions}")
             return False
 
         # 验证是否已收藏
@@ -107,8 +118,10 @@ def verify_favorite_nearby_attractions(device_id=None):
 
         # 验证通过，输出结果
         print("✓ PASS: 收藏周边景点任务验证成功")
-        print(f"   收藏数量: {count_str}")
-        print(f"   匹配到的答案: {matched_answer}")
+        print(f"   收藏的景点数量: {len(attractions)}")
+        print(f"   收藏的景点列表:")
+        for attraction in attractions:
+            print(f"      - {attraction}")
         print(f"   已收藏: {favorited}")
 
         return True

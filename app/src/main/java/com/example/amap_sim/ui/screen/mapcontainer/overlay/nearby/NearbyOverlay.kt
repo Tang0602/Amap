@@ -648,6 +648,25 @@ private fun RankingPoiItem(
                         )
                     }
                 }
+                // 电话号码
+                if (!poi.phone.isNullOrEmpty()) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Call,
+                            contentDescription = null,
+                            tint = AmapBlue,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = poi.phone,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = AmapBlue
+                        )
+                    }
+                }
                 // 地址
                 if (!poi.address.isNullOrEmpty()) {
                     Text(

@@ -306,6 +306,8 @@ class RouteViewModel : ViewModel() {
      * 更新途径点（从添加途径点页面返回后调用）
      *
      * 同时更新 AgentDataManager 的文件18（指令18：在导航去滨江饭店的路线中添加途经点群芳园）
+     * 文件27（指令27：在导航去滨江饭店的路线中添加收藏中第一个地点作为途径点）
+     * 文件28（指令28：在导航去M+购物中心的路线中添加第一个途经点芦苇滩，第二个途经点武汉市人民政府）
      */
     private fun updateWaypoints(
         startLocation: LocationInput,
@@ -341,6 +343,34 @@ class RouteViewModel : ViewModel() {
         if (destinationName == "滨江饭店" && hasQunfangyuan) {
             agentDataManager.updateFile18(destinationName, "群芳园", true)
             Log.d(TAG, "已更新 Agent 文件18: destination=$destinationName, waypoint=群芳园, added=true")
+        }
+
+        // 更新 Agent 数据文件27（指令27检测用：在导航去滨江饭店的路线中添加收藏中第一个地点作为途径点）
+        val hasYaduoHotel = waypoints.any { waypoint ->
+            when (waypoint) {
+                is LocationInput.SpecificLocation -> waypoint.name == "亚朵酒店"
+                else -> false
+            }
+        }
+
+        if (destinationName == "滨江饭店" && hasYaduoHotel) {
+            agentDataManager.updateFile27(destinationName, "亚朵酒店", true)
+            Log.d(TAG, "已更新 Agent 文件27: destination=$destinationName, waypoint=亚朵酒店, added=true")
+        }
+
+        // 更新 Agent 数据文件28（指令28检测用：在导航去M+购物中心的路线中添加第一个途经点芦苇滩，第二个途经点武汉市人民政府）
+        val waypointNames = waypoints.mapNotNull { waypoint ->
+            when (waypoint) {
+                is LocationInput.SpecificLocation -> waypoint.name
+                else -> null
+            }
+        }
+
+        if (destinationName == "M+购物中心" &&
+            waypointNames.contains("芦苇滩") &&
+            waypointNames.contains("武汉市人民政府")) {
+            agentDataManager.updateFile28(destinationName, waypointNames, true)
+            Log.d(TAG, "已更新 Agent 文件28: destination=$destinationName, waypoints=$waypointNames, added=true")
         }
 
         // 如果终点已设置，自动计算路线
@@ -444,6 +474,9 @@ class RouteViewModel : ViewModel() {
      * 同时更新 AgentDataManager 的文件7（指令7：步行导航去M+购物中心）
      * 文件16（指令16：步行导航去肖记公安牛肉鱼杂馆）
      * 文件17（指令17：从M+购物中心导航到我的位置）
+     * 文件25（指令25：骑行导航去我收藏的饭店中最近的一家）
+     * 文件26（指令26：步行导航去我最近去过的一家餐馆）
+     * 文件29（指令29：多站点导航）
      */
     private fun startNavigation() {
         val routeResult = _uiState.value.routeResult ?: return
@@ -477,6 +510,35 @@ class RouteViewModel : ViewModel() {
         if (startName == "M+购物中心" && endLocation is LocationInput.CurrentLocation) {
             agentDataManager.updateFile17(startName, destinationName, true)
             Log.d(TAG, "已更新 Agent 文件17: from=$startName, to=$destinationName, started=true")
+        }
+
+        // 更新 Agent 数据文件25（指令25检测用：骑行导航去我收藏的饭店中最近的一家）
+        if (destinationName == "肖记公安牛肉鱼杂馆" && selectedProfile == TravelProfile.BIKE) {
+            agentDataManager.updateFile25(destinationName, transportMode, true)
+            Log.d(TAG, "已更新 Agent 文件25: destination=$destinationName, mode=$transportMode, started=true")
+        }
+
+        // 更新 Agent 数据文件26（指令26检测用：步行导航去我最近去过的一家餐馆）
+        if (destinationName == "Lilly Cafe" && selectedProfile == TravelProfile.FOOT) {
+            agentDataManager.updateFile26(destinationName, transportMode, true)
+            Log.d(TAG, "已更新 Agent 文件26: destination=$destinationName, mode=$transportMode, started=true")
+        }
+
+        // 更新 Agent 数据文件29（指令29检测用：M+购物中心到武汉市人民政府再到芦苇滩最后到我的位置）
+        val waypoints = _uiState.value.waypoints
+        if (startName == "M+购物中心" && endLocation is LocationInput.CurrentLocation) {
+            val waypointNames = waypoints.mapNotNull { waypoint ->
+                when (waypoint) {
+                    is LocationInput.SpecificLocation -> waypoint.name
+                    else -> null
+                }
+            }
+            // 检查途经点是否包含武汉市人民政府和芦苇滩
+            if (waypointNames.contains("武汉市人民政府") && waypointNames.contains("芦苇滩")) {
+                val stops = listOf(startName) + waypointNames + listOf(destinationName)
+                agentDataManager.updateFile29(stops, true)
+                Log.d(TAG, "已更新 Agent 文件29: stops=$stops, completed=true")
+            }
         }
 
         viewModelScope.launch {

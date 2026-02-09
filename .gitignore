@@ -35,3 +35,5 @@ scripts/map_data/*.map
 scripts/map_data/*.db
 scripts/map_data/*-gh/
 # 保留 theme.xml 等配置文件
+
+.claude/

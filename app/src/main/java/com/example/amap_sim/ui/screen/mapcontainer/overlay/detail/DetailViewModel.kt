@@ -227,6 +227,7 @@ class DetailViewModel : ViewModel() {
      *
      * 同时更新 AgentDataManager 的文件10（指令10：收藏周边最近的餐馆）
      * 和文件5（指令5：告诉我收藏夹收藏了几个地点）
+     * 和文件20（指令20：收藏四个特定景点）
      */
     private fun toggleFavorite() {
         viewModelScope.launch {
@@ -250,7 +251,59 @@ class DetailViewModel : ViewModel() {
             val favoriteCount = userDataManager.getFavorites().size
             agentDataManager.updateFile5(favoriteCount)
             Log.d(TAG, "已更新 Agent 文件5: count=$favoriteCount")
+
+            // 检查指令20：是否收藏了四个特定景点
+            checkInstruction20()
         }
+    }
+
+    /**
+     * 检查指令20：收藏四个特定景点
+     *
+     * 目标景点：
+     * 1. 庚子革命烈士墓墓道牌坊
+     * 2. 水生生物博物馆
+     * 3. 董必武纪念像
+     * 4. 烈士合葬墓
+     */
+    private suspend fun checkInstruction20() {
+        val targetAttractions = listOf(
+            "庚子革命烈士墓墓道牌坊",
+            "水生生物博物馆",
+            "董必武纪念像",
+            "烈士合葬墓"
+        )
+
+        // 获取所有收藏的 POI ID
+        val favoriteIds = userDataManager.getFavorites()
+
+        // 获取所有收藏的 POI 名称
+        val favoritedAttractions = mutableListOf<String>()
+        for (id in favoriteIds) {
+            try {
+                val poiId = id.toLongOrNull() ?: continue
+                val result = searchService.getPoiById(poiId)
+                if (result.isSuccess) {
+                    val poi = result.getOrNull()
+                    if (poi != null && (poi.category.contains("景点") || poi.category.contains("旅游"))) {
+                        favoritedAttractions.add(poi.name)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "获取收藏 POI 失败: id=$id", e)
+            }
+        }
+
+        // 筛选出已收藏的目标景点
+        val favoritedTargetAttractions = targetAttractions.filter { it in favoritedAttractions }
+
+        // 检查是否所有目标景点都已收藏
+        val allFavorited = favoritedTargetAttractions.size == targetAttractions.size
+
+        // 无论收藏了几个，都更新文件，显示已收藏的目标景点
+        agentDataManager.updateFile20(favoritedTargetAttractions, allFavorited)
+        Log.d(TAG, "已更新 Agent 文件20: 已收藏 ${favoritedTargetAttractions.size}/${targetAttractions.size} 个目标景点")
+        Log.d(TAG, "已收藏的景点: $favoritedTargetAttractions")
     }
     
     /**

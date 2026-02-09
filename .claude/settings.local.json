@@ -10,7 +10,15 @@
       "Bash(gradlew.bat assembleDebug:*)",
       "Bash(Select-Object -First 100)",
       "Bash(./gradlew.bat :app:compileDebugKotlin:*)",
-      "Bash(./gradlew.bat clean:*)"
+      "Bash(./gradlew.bat clean:*)",
+      "Bash(gradlew.bat :app:compileDebugKotlin:*)",
+      "Bash(adb exec-out:*)",
+      "Bash(adb shell run-as:*)",
+      "Bash(adb shell am force-stop:*)",
+      "Bash(adb shell am start:*)",
+      "Bash(adb shell:*)",
+      "Bash(timeout:*)",
+      "Bash(dir:*)"
     ],
     "deny": [],
     "ask": []

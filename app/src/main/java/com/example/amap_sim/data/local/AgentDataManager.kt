@@ -353,12 +353,31 @@ class AgentDataManager(private val context: Context) {
         }
     }
 
-    /** 20. 收藏所有周边1km以内（包括1km）的所有景点 */
+    /** 20. 收藏这四个景点：庚子革命烈士墓宣道牌坊、水生生物博物馆、董必武纪念像、烈士合葬墓 */
     private fun initFile20(forceRecreate: Boolean = false) {
         val file = File(context.filesDir, FILE_20_FAVORITE_NEARBY_ATTRACTIONS)
-        if (!file.exists() || forceRecreate) {
+
+        // 检查文件是否存在且需要迁移旧结构
+        var needsRecreate = forceRecreate || !file.exists()
+
+        if (file.exists() && !forceRecreate) {
+            try {
+                val content = file.readText()
+                val json = JSONObject(content)
+                // 如果包含旧的 "count" 字段，需要重新创建
+                if (json.has("count")) {
+                    needsRecreate = true
+                    Log.d(TAG, "检测到旧的文件20结构，将重新创建")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "读取文件20失败，将重新创建", e)
+                needsRecreate = true
+            }
+        }
+
+        if (needsRecreate) {
             val data = JSONObject().apply {
-                put("count", 0)
+                put("attractions", JSONArray())
                 put("favorited", false)
             }
             file.writeText(data.toString(4))
@@ -705,11 +724,11 @@ class AgentDataManager(private val context: Context) {
         Log.d(TAG, "更新文件: $FILE_19_CALL_TOP_ATTRACTION")
     }
 
-    /** 更新文件20：收藏周边景点 */
-    fun updateFile20(count: Int, favorited: Boolean) {
+    /** 更新文件20：收藏这四个景点 */
+    fun updateFile20(attractions: List<String>, favorited: Boolean) {
         val file = File(context.filesDir, FILE_20_FAVORITE_NEARBY_ATTRACTIONS)
         val data = JSONObject().apply {
-            put("count", count)
+            put("attractions", JSONArray(attractions))
             put("favorited", favorited)
         }
         file.writeText(data.toString(4))
