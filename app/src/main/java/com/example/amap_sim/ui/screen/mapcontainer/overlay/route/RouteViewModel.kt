@@ -326,24 +326,28 @@ class RouteViewModel : ViewModel() {
         Log.d(TAG, "updateWaypoints: 状态已更新，waypoints.size=${_uiState.value.waypoints.size}")
 
         // 更新 Agent 数据文件18（指令18检测用：在导航去滨江饭店的路线中添加途经点群芳园）
+        // 每次更新途经点都更新 destination 和 waypoint，但只有满足条件时 added 才为 true
         val destinationName = when (endLocation) {
             is LocationInput.CurrentLocation -> "我的位置"
             is LocationInput.SpecificLocation -> endLocation.name
             null -> ""
         }
 
-        // 检查是否添加了群芳园作为途经点，且目的地是滨江饭店
-        val hasQunfangyuan = waypoints.any { waypoint ->
+        // 获取所有途经点的名称
+        val waypointNames = waypoints.mapNotNull { waypoint ->
             when (waypoint) {
-                is LocationInput.SpecificLocation -> waypoint.name == "群芳园"
-                else -> false
+                is LocationInput.SpecificLocation -> waypoint.name
+                else -> null
             }
         }
+        val waypointString = waypointNames.joinToString(", ")
 
-        if (destinationName == "滨江饭店" && hasQunfangyuan) {
-            agentDataManager.updateFile18(destinationName, "群芳园", true)
-            Log.d(TAG, "已更新 Agent 文件18: destination=$destinationName, waypoint=群芳园, added=true")
-        }
+        // 检查是否添加了群芳园作为途经点，且目的地是滨江饭店
+        val hasQunfangyuan = waypointNames.contains("群芳园")
+        val isFile18Match = destinationName == "滨江饭店" && hasQunfangyuan
+
+        agentDataManager.updateFile18(destinationName, waypointString, isFile18Match)
+        Log.d(TAG, "已更新 Agent 文件18: destination=$destinationName, waypoint=$waypointString, added=$isFile18Match")
 
         // 更新 Agent 数据文件27（指令27检测用：在导航去滨江饭店的路线中添加收藏中第一个地点作为途径点）
         val hasYaduoHotel = waypoints.any { waypoint ->
@@ -359,13 +363,6 @@ class RouteViewModel : ViewModel() {
         }
 
         // 更新 Agent 数据文件28（指令28检测用：在导航去M+购物中心的路线中添加第一个途经点芦苇滩，第二个途经点武汉市人民政府）
-        val waypointNames = waypoints.mapNotNull { waypoint ->
-            when (waypoint) {
-                is LocationInput.SpecificLocation -> waypoint.name
-                else -> null
-            }
-        }
-
         if (destinationName == "M+购物中心" &&
             waypointNames.contains("芦苇滩") &&
             waypointNames.contains("武汉市人民政府")) {
