@@ -63,12 +63,28 @@ class FavoritesViewModel : ViewModel() {
 
                 val favoriteIds = userDataManager.getFavorites()
                 val favorites = mutableListOf<PoiResult>()
+                val center = com.example.amap_sim.domain.model.LatLng(30.5928, 114.3055)
 
                 for (id in favoriteIds) {
-                    val poiId = id.toLongOrNull()
-                    if (poiId != null) {
-                        val result = searchService.getPoiById(poiId)
-                        result.getOrNull()?.let { favorites.add(it) }
+                    // 检查是否是预设标记
+                    if (id.startsWith("PRESET:")) {
+                        val name = id.removePrefix("PRESET:")
+                        Log.d(TAG, "处理预设收藏: $name")
+                        // 搜索POI
+                        val result = searchService.searchByKeyword(name, 20, center)
+                        result.getOrNull()?.firstOrNull { it.name.contains(name) || name.contains(it.name) }?.let { poi ->
+                            favorites.add(poi)
+                            Log.d(TAG, "找到预设收藏: ${poi.name}, ID: ${poi.id}")
+                        } ?: run {
+                            Log.w(TAG, "未找到预设收藏: $name")
+                        }
+                    } else {
+                        // 正常的收藏ID
+                        val poiId = id.toLongOrNull()
+                        if (poiId != null) {
+                            val result = searchService.getPoiById(poiId)
+                            result.getOrNull()?.let { favorites.add(it) }
+                        }
                     }
                 }
 

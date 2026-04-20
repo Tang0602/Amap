@@ -77,8 +77,10 @@ sealed class MapOverlayState {
 
     /**
      * 收藏夹 Overlay - 收藏列表
+     *
+     * @param fromWaypoint 是否从途径点界面打开，若是则点击直接返回位置而非跳转详情
      */
-    data object Favorites : MapOverlayState()
+    data class Favorites(val fromWaypoint: Boolean = false) : MapOverlayState()
     
     companion object {
         /**

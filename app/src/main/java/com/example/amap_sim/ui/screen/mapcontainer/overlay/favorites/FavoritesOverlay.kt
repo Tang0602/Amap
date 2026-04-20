@@ -54,6 +54,7 @@ import com.example.amap_sim.ui.theme.Gray500
 fun FavoritesOverlay(
     onNavigateBack: () -> Unit,
     onNavigateToDetail: (String) -> Unit,
+    onSelectPoi: ((PoiResult) -> Unit)? = null,
     viewModel: FavoritesViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -74,7 +75,8 @@ fun FavoritesOverlay(
     FavoritesOverlayContent(
         uiState = uiState,
         onEvent = viewModel::onEvent,
-        onBack = onNavigateBack
+        onBack = onNavigateBack,
+        onSelectPoi = onSelectPoi
     )
 }
 
@@ -82,7 +84,8 @@ fun FavoritesOverlay(
 private fun FavoritesOverlayContent(
     uiState: FavoritesUiState,
     onEvent: (FavoritesEvent) -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onSelectPoi: ((PoiResult) -> Unit)?
 ) {
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -131,7 +134,15 @@ private fun FavoritesOverlayContent(
                 else -> {
                     FavoritesList(
                         favorites = uiState.favorites,
-                        onFavoriteClick = { onEvent(FavoritesEvent.OnFavoriteClick(it)) },
+                        onFavoriteClick = { poi ->
+                            if (onSelectPoi != null) {
+                                // 从途经点界面打开，直接选择POI（不调用onBack，由外部处理）
+                                onSelectPoi(poi)
+                            } else {
+                                // 正常流程，跳转到详情
+                                onEvent(FavoritesEvent.OnFavoriteClick(poi.id.toString()))
+                            }
+                        },
                         onRemoveFavorite = { onEvent(FavoritesEvent.RemoveFavorite(it)) }
                     )
                 }
@@ -173,7 +184,7 @@ private fun TopBar(
 @Composable
 private fun FavoritesList(
     favorites: List<PoiResult>,
-    onFavoriteClick: (String) -> Unit,
+    onFavoriteClick: (PoiResult) -> Unit,
     onRemoveFavorite: (String) -> Unit
 ) {
     LazyColumn(
@@ -184,7 +195,7 @@ private fun FavoritesList(
         items(favorites, key = { it.id }) { poi ->
             FavoriteItem(
                 poi = poi,
-                onClick = { onFavoriteClick(poi.id.toString()) },
+                onClick = { onFavoriteClick(poi) },
                 onRemove = { onRemoveFavorite(poi.id.toString()) }
             )
         }

@@ -350,25 +350,19 @@ class RouteViewModel : ViewModel() {
         Log.d(TAG, "已更新 Agent 文件18: destination=$destinationName, waypoint=$waypointString, added=$isFile18Match")
 
         // 更新 Agent 数据文件27（指令27检测用：在导航去滨江饭店的路线中添加收藏中第一个地点作为途径点）
-        val hasYaduoHotel = waypoints.any { waypoint ->
-            when (waypoint) {
-                is LocationInput.SpecificLocation -> waypoint.name == "亚朵酒店"
-                else -> false
-            }
-        }
-
-        if (destinationName == "滨江饭店" && hasYaduoHotel) {
-            agentDataManager.updateFile27(destinationName, "亚朵酒店", true)
-            Log.d(TAG, "已更新 Agent 文件27: destination=$destinationName, waypoint=亚朵酒店, added=true")
-        }
+        // 每次更新途经点都更新 destination 和 waypoint，但只有满足条件时 added 才为 true
+        val hasYaduoHotel = waypointNames.contains("亚朵酒店")
+        val isFile27Match = destinationName == "滨江饭店" && hasYaduoHotel
+        agentDataManager.updateFile27(destinationName, waypointString, isFile27Match)
+        Log.d(TAG, "已更新 Agent 文件27: destination=$destinationName, waypoint=$waypointString, added=$isFile27Match")
 
         // 更新 Agent 数据文件28（指令28检测用：在导航去M+购物中心的路线中添加第一个途经点芦苇滩，第二个途经点武汉市人民政府）
-        if (destinationName == "M+购物中心" &&
-            waypointNames.contains("芦苇滩") &&
-            waypointNames.contains("武汉市人民政府")) {
-            agentDataManager.updateFile28(destinationName, waypointNames, true)
-            Log.d(TAG, "已更新 Agent 文件28: destination=$destinationName, waypoints=$waypointNames, added=true")
-        }
+        // 每次更新途经点都更新 destination 和 waypoints，但只有满足条件时 added 才为 true
+        val isFile28Match = destinationName == "M+购物中心" &&
+                            waypointNames.contains("芦苇滩") &&
+                            waypointNames.contains("武汉市人民政府")
+        agentDataManager.updateFile28(destinationName, waypointNames, isFile28Match)
+        Log.d(TAG, "已更新 Agent 文件28: destination=$destinationName, waypoints=$waypointNames, added=$isFile28Match")
 
         // 如果终点已设置，自动计算路线
         if (endLocation != null) {
@@ -510,33 +504,36 @@ class RouteViewModel : ViewModel() {
         Log.d(TAG, "已更新 Agent 文件17: from=$startName, to=$destinationName, started=$isFile17Match")
 
         // 更新 Agent 数据文件25（指令25检测用：骑行导航去我收藏的饭店中最近的一家）
-        if (destinationName == "肖记公安牛肉鱼杂馆" && selectedProfile == TravelProfile.BIKE) {
-            agentDataManager.updateFile25(destinationName, transportMode, true)
-            Log.d(TAG, "已更新 Agent 文件25: destination=$destinationName, mode=$transportMode, started=true")
-        }
+        // 每次导航都更新 destination 和 mode，但只有满足条件时 started 才为 true
+        val isFile25Match = destinationName == "肖记公安牛肉鱼杂馆" && selectedProfile == TravelProfile.BIKE
+        agentDataManager.updateFile25(destinationName, transportMode, isFile25Match)
+        Log.d(TAG, "已更新 Agent 文件25: destination=$destinationName, mode=$transportMode, started=$isFile25Match")
 
         // 更新 Agent 数据文件26（指令26检测用：步行导航去我最近去过的一家餐馆）
-        if (destinationName == "Lilly Cafe" && selectedProfile == TravelProfile.FOOT) {
-            agentDataManager.updateFile26(destinationName, transportMode, true)
-            Log.d(TAG, "已更新 Agent 文件26: destination=$destinationName, mode=$transportMode, started=true")
-        }
+        // 每次导航都更新 destination 和 mode，但只有满足条件时 started 才为 true
+        val isFile26Match = destinationName == "Lilly Cafe" && selectedProfile == TravelProfile.FOOT
+        agentDataManager.updateFile26(destinationName, transportMode, isFile26Match)
+        Log.d(TAG, "已更新 Agent 文件26: destination=$destinationName, mode=$transportMode, started=$isFile26Match")
 
         // 更新 Agent 数据文件29（指令29检测用：M+购物中心到武汉市人民政府再到芦苇滩最后到我的位置）
+        // 每次导航都更新 stops，但只有满足条件时 completed 才为 true
         val waypoints = _uiState.value.waypoints
-        if (startName == "M+购物中心" && endLocation is LocationInput.CurrentLocation) {
-            val waypointNames = waypoints.mapNotNull { waypoint ->
-                when (waypoint) {
-                    is LocationInput.SpecificLocation -> waypoint.name
-                    else -> null
-                }
-            }
-            // 检查途经点是否包含武汉市人民政府和芦苇滩
-            if (waypointNames.contains("武汉市人民政府") && waypointNames.contains("芦苇滩")) {
-                val stops = listOf(startName) + waypointNames + listOf(destinationName)
-                agentDataManager.updateFile29(stops, true)
-                Log.d(TAG, "已更新 Agent 文件29: stops=$stops, completed=true")
+        val waypointNames = waypoints.mapNotNull { waypoint ->
+            when (waypoint) {
+                is LocationInput.SpecificLocation -> waypoint.name
+                else -> null
             }
         }
+        val stops = listOf(startName) + waypointNames + listOf(destinationName)
+
+        // 检查是否满足指令29的条件
+        val isFile29Match = startName == "M+购物中心" &&
+                           endLocation is LocationInput.CurrentLocation &&
+                           waypointNames.contains("武汉市人民政府") &&
+                           waypointNames.contains("芦苇滩")
+
+        agentDataManager.updateFile29(stops, isFile29Match)
+        Log.d(TAG, "已更新 Agent 文件29: stops=$stops, completed=$isFile29Match")
 
         viewModelScope.launch {
             _navigationEvent.emit(RouteNavigationEvent.StartNavigation(routeResult, startLocation, endLocation))

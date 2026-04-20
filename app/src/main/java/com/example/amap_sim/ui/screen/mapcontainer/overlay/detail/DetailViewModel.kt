@@ -332,11 +332,11 @@ class DetailViewModel : ViewModel() {
         val poi = _uiState.value.poi
         val phone = poi?.phone
         if (poi != null && !phone.isNullOrEmpty()) {
-            // 如果是景点，更新文件19
-            if (poi.category.contains("景点") || poi.category.contains("旅游")) {
-                agentDataManager.updateFile19(poi.name, phone, true)
-                Log.d(TAG, "已更新 Agent 文件19: name=${poi.name}, phone=$phone, called=true")
-            }
+            // 每次拨打电话都更新文件19，但只有满足条件时 called 才为 true
+            val isFile19Match = (poi.category.contains("景点") || poi.category.contains("旅游")) &&
+                                poi.name == "庚子革命烈士墓墓道牌坊"
+            agentDataManager.updateFile19(poi.name, phone, isFile19Match)
+            Log.d(TAG, "已更新 Agent 文件19: name=${poi.name}, phone=$phone, called=$isFile19Match")
         }
         _uiState.update { it.copy(showPhoneDialog = false, showCallSuccess = true) }
     }

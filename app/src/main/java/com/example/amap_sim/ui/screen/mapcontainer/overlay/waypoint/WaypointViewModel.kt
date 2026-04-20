@@ -39,9 +39,12 @@ class WaypointViewModel : ViewModel() {
     
     // 搜索任务
     private var searchJob: Job? = null
-    
+
     // 默认中心点（武汉）
     private val defaultCenter = LatLng(30.5928, 114.3055)
+
+    // 保存打开收藏夹前的编辑索引
+    private var savedEditingIndex: Int? = null
     
     init {
         initializeSearchService()
@@ -100,12 +103,23 @@ class WaypointViewModel : ViewModel() {
     
     /**
      * 初始化途径点数据（从 RoutePlanningOverlay 传入）
+     * 只在首次初始化时设置，避免覆盖用户的修改
      */
     fun initialize(
         startLocation: LocationInput,
         waypoints: List<LocationInput>,
         endLocation: LocationInput?
     ) {
+        val currentState = _uiState.value
+        // 如果当前状态不是默认状态，说明已经初始化过或用户已经修改过，不要覆盖
+        if (currentState.startLocation != LocationInput.CurrentLocation ||
+            currentState.waypoints.isNotEmpty() ||
+            currentState.endLocation != null) {
+            Log.d(TAG, "initialize: 状态已存在，跳过初始化")
+            return
+        }
+
+        Log.d(TAG, "initialize: 初始化状态")
         _uiState.update {
             it.copy(
                 startLocation = startLocation,
@@ -142,6 +156,7 @@ class WaypointViewModel : ViewModel() {
             
             is WaypointEvent.AddWaypoint -> {
                 val currentState = _uiState.value
+                Log.d(TAG, "AddWaypoint: canAddMore=${currentState.canAddMore}, waypoints.size=${currentState.waypoints.size}, maxWaypoints=${currentState.maxWaypoints}")
                 if (currentState.canAddMore) {
                     _uiState.update {
                         it.copy(
@@ -149,6 +164,9 @@ class WaypointViewModel : ViewModel() {
                             editingIndex = it.waypoints.size
                         )
                     }
+                    Log.d(TAG, "AddWaypoint 成功: 新的 waypoints.size=${_uiState.value.waypoints.size}")
+                } else {
+                    Log.w(TAG, "AddWaypoint 失败: 已达到最大途经点数量")
                 }
             }
             
@@ -165,16 +183,19 @@ class WaypointViewModel : ViewModel() {
             }
             
             is WaypointEvent.SetWaypoint -> {
+                Log.d(TAG, "SetWaypoint: index=${event.index}, location=${event.location.getDisplayName()}")
                 _uiState.update {
                     val newWaypoints = it.waypoints.toMutableList()
                     if (event.index in newWaypoints.indices) {
                         newWaypoints[event.index] = event.location
+                        Log.d(TAG, "SetWaypoint 成功: waypoints.size=${newWaypoints.size}, waypoint[${event.index}]=${event.location.getDisplayName()}")
                         it.copy(
                             waypoints = newWaypoints,
                             editingIndex = null,
                             searchKeyword = ""
                         )
                     } else {
+                        Log.w(TAG, "SetWaypoint 失败: index=${event.index} out of range, waypoints.size=${newWaypoints.size}")
                         it
                     }
                 }
@@ -269,6 +290,9 @@ class WaypointViewModel : ViewModel() {
             }
             
             is WaypointEvent.QuickSelectFavorites -> {
+                // 保存当前编辑索引
+                savedEditingIndex = _uiState.value.editingIndex
+                Log.d(TAG, "QuickSelectFavorites: 保存编辑索引 = $savedEditingIndex")
                 // 打开收藏夹 Overlay
                 viewModelScope.launch {
                     _navigationEvent.emit(WaypointNavigationEvent.OpenFavorites)
@@ -374,6 +398,7 @@ class WaypointViewModel : ViewModel() {
      * 选择位置（从搜索结果/建议位置/历史记录）
      */
     private fun selectLocation(poi: PoiResult) {
+        Log.d(TAG, "selectLocation: poi=${poi.name}")
         val location = LocationInput.SpecificLocation(
             name = poi.name,
             coordinates = poi.location,
@@ -384,20 +409,58 @@ class WaypointViewModel : ViewModel() {
     
     /**
      * 选择位置并更新到当前编辑的字段
+     * 如果没有正在编辑的字段，则添加为新的途经点
      */
     private fun selectLocationForEditing(location: LocationInput) {
         val currentState = _uiState.value
-        val editingIndex = currentState.editingIndex ?: return
-        
+        // 优先使用保存的编辑索引，如果没有则使用当前的编辑索引
+        val editingIndex = savedEditingIndex ?: currentState.editingIndex
+
+        Log.d(TAG, "selectLocationForEditing: savedEditingIndex=$savedEditingIndex, currentEditingIndex=${currentState.editingIndex}, finalEditingIndex=$editingIndex")
+        Log.d(TAG, "selectLocationForEditing: location=${location.getDisplayName()}, waypoints.size=${currentState.waypoints.size}")
+
+        if (editingIndex == null) {
+            // 如果没有正在编辑的字段，直接添加为新的途经点
+            Log.d(TAG, "没有编辑索引，直接添加为新的途经点")
+
+            // 直接更新状态，添加新的途经点
+            _uiState.update {
+                val newWaypoints = it.waypoints + location
+                Log.d(TAG, "添加途经点后: waypoints.size=${newWaypoints.size}")
+                it.copy(
+                    waypoints = newWaypoints,
+                    editingIndex = null,
+                    searchKeyword = "",
+                    searchResults = emptyList()
+                )
+            }
+            return
+        }
+
+        Log.d(TAG, "selectLocationForEditing: editingIndex=$editingIndex, location=${location.getDisplayName()}")
+
         when (editingIndex) {
-            -1 -> onEvent(WaypointEvent.SetStartLocation(location))
-            -2 -> onEvent(WaypointEvent.SetEndLocation(location))
+            -1 -> {
+                Log.d(TAG, "设置起点: ${location.getDisplayName()}")
+                onEvent(WaypointEvent.SetStartLocation(location))
+            }
+            -2 -> {
+                Log.d(TAG, "设置终点: ${location.getDisplayName()}")
+                onEvent(WaypointEvent.SetEndLocation(location))
+            }
             else -> {
                 if (editingIndex in currentState.waypoints.indices) {
+                    Log.d(TAG, "设置途经点[$editingIndex]: ${location.getDisplayName()}")
                     onEvent(WaypointEvent.SetWaypoint(editingIndex, location))
+                } else {
+                    Log.w(TAG, "selectLocationForEditing: editingIndex=$editingIndex out of range, waypoints.size=${currentState.waypoints.size}")
                 }
             }
         }
+
+        // 清除保存的编辑索引
+        savedEditingIndex = null
+        Log.d(TAG, "已清除 savedEditingIndex")
     }
 }
 

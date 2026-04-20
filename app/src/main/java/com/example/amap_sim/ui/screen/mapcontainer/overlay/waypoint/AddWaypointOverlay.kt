@@ -42,6 +42,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.amap_sim.domain.model.PoiResult
 import com.example.amap_sim.ui.screen.mapcontainer.overlay.route.LocationInput
 import com.example.amap_sim.ui.screen.mapcontainer.overlay.search.components.PoiListItem
 import com.example.amap_sim.ui.screen.mapcontainer.overlay.waypoint.components.QuickSelectButtons
@@ -61,7 +62,7 @@ fun AddWaypointOverlay(
     endLocation: LocationInput? = null,
     onNavigateBack: () -> Unit,
     onComplete: (LocationInput, List<LocationInput>, LocationInput?) -> Unit,
-    onOpenFavorites: () -> Unit = {},
+    onOpenFavorites: ((PoiResult) -> Unit) -> Unit = {},
     viewModel: WaypointViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -81,8 +82,13 @@ fun AddWaypointOverlay(
                     onComplete(event.startLocation, event.waypoints, event.endLocation)
                 }
                 is WaypointNavigationEvent.OpenFavorites -> {
-                    // 打开收藏夹 Overlay
-                    onOpenFavorites()
+                    // 打开收藏夹 Overlay，传入选择POI的回调
+                    onOpenFavorites { poi ->
+                        android.util.Log.d("AddWaypointOverlay", "收藏夹选择POI: ${poi.name}")
+                        android.util.Log.d("AddWaypointOverlay", "当前编辑索引: ${viewModel.uiState.value.editingIndex}")
+                        // 当从收藏夹选择POI后，填入当前编辑的字段
+                        viewModel.onEvent(WaypointEvent.SelectSearchResult(poi))
+                    }
                 }
             }
         }

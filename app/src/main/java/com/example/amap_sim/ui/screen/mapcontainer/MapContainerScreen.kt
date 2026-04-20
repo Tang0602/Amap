@@ -238,9 +238,11 @@ fun MapContainerScreen(
                             waypoints = overlayState.waypoints,
                             endLocation = overlayState.endLocation,
                             onNavigateBack = { viewModel.navigateBack() },
-                            onOpenFavorites = {
-                                // 直接打开收藏夹 Overlay
-                                viewModel.openFavorites()
+                            onOpenFavorites = { onPoiSelected ->
+                                // 从途经点界面打开收藏夹，标记 fromWaypoint=true
+                                // 保存回调函数，用于从收藏夹选择POI后调用
+                                viewModel.setWaypointPoiCallback(onPoiSelected)
+                                viewModel.openFavorites(fromWaypoint = true)
                             },
                             onComplete = { startLocation, waypoints, endLocation ->
                                 // 更新 RoutePlanning 状态并返回
@@ -287,7 +289,16 @@ fun MapContainerScreen(
                             onNavigateBack = { viewModel.navigateBack() },
                             onNavigateToDetail = { poiId ->
                                 viewModel.openPoiDetail(poiId)
-                            }
+                            },
+                            onSelectPoi = if (overlayState.fromWaypoint) {
+                                { poi ->
+                                    // 从途经点界面打开，选择POI后调用回调并返回
+                                    android.util.Log.d("MapContainerScreen", "收藏夹选择POI: ${poi.name}")
+                                    viewModel.invokeWaypointPoiCallback(poi)
+                                    android.util.Log.d("MapContainerScreen", "准备返回到AddWaypointOverlay")
+                                    viewModel.navigateBack()
+                                }
+                            } else null
                         )
                     }
 

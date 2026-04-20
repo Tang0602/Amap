@@ -18,7 +18,9 @@
       "Bash(adb shell am start:*)",
       "Bash(adb shell:*)",
       "Bash(timeout:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Read(//d/Amap/**)",
+      "Bash(./gradlew.bat assembleDebug)"
     ],
     "deny": [],
     "ask": []

@@ -25,15 +25,18 @@ import java.util.UUID
  * - 实现 MapStateController 接口供业务 ViewModel 调用
  */
 class MapContainerViewModel : ViewModel(), MapStateController {
-    
+
     // UI 状态
     private val _uiState = MutableStateFlow(MapContainerUiState())
     val uiState: StateFlow<MapContainerUiState> = _uiState.asStateFlow()
-    
+
     // 地图命令通道
     private val _mapCommands = Channel<MapContainerCommand>(Channel.BUFFERED)
     val mapCommands = _mapCommands.receiveAsFlow()
-    
+
+    // 从途经点界面打开收藏夹时的回调
+    private var waypointPoiCallback: ((com.example.amap_sim.domain.model.PoiResult) -> Unit)? = null
+
     // ============== Overlay 状态管理 ==============
     
     /**
@@ -136,8 +139,25 @@ class MapContainerViewModel : ViewModel(), MapStateController {
     /**
      * 打开收藏夹 Overlay
      */
-    fun openFavorites() {
-        navigateToOverlay(MapOverlayState.Favorites)
+    fun openFavorites(fromWaypoint: Boolean = false) {
+        navigateToOverlay(MapOverlayState.Favorites(fromWaypoint))
+    }
+
+    /**
+     * 设置从途经点界面选择POI的回调
+     */
+    fun setWaypointPoiCallback(callback: (com.example.amap_sim.domain.model.PoiResult) -> Unit) {
+        waypointPoiCallback = callback
+        android.util.Log.d("MapContainerViewModel", "setWaypointPoiCallback: 回调已保存")
+    }
+
+    /**
+     * 调用途经点POI回调并清除
+     */
+    fun invokeWaypointPoiCallback(poi: com.example.amap_sim.domain.model.PoiResult) {
+        android.util.Log.d("MapContainerViewModel", "invokeWaypointPoiCallback: poi=${poi.name}, callback=${waypointPoiCallback != null}")
+        waypointPoiCallback?.invoke(poi)
+        waypointPoiCallback = null
     }
 
     /**
