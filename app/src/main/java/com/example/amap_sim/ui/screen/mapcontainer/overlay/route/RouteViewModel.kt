@@ -501,10 +501,10 @@ class RouteViewModel : ViewModel() {
         Log.d(TAG, "已更新 Agent 文件7: destination=$fullDestination, started=true")
 
         // 更新 Agent 数据文件16（指令16检测用：步行导航去肖记公安牛肉鱼杂馆）
-        if (destinationName == "肖记公安牛肉鱼杂馆" && selectedProfile == TravelProfile.FOOT) {
-            agentDataManager.updateFile16(destinationName, transportMode, true)
-            Log.d(TAG, "已更新 Agent 文件16: destination=$destinationName, mode=$transportMode, started=true")
-        }
+        // 每次导航都更新 destination 和 mode，但只有满足条件时 started 才为 true
+        val isFile16Match = destinationName == "肖记公安牛肉鱼杂馆" && selectedProfile == TravelProfile.FOOT
+        agentDataManager.updateFile16(destinationName, transportMode, isFile16Match)
+        Log.d(TAG, "已更新 Agent 文件16: destination=$destinationName, mode=$transportMode, started=$isFile16Match")
 
         // 更新 Agent 数据文件17（指令17检测用：从M+购物中心导航到我的位置）
         if (startName == "M+购物中心" && endLocation is LocationInput.CurrentLocation) {
