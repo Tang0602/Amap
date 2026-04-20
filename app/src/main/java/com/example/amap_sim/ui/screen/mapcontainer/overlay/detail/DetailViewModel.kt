@@ -237,11 +237,12 @@ class DetailViewModel : ViewModel() {
             if (newFavoriteState) {
                 userDataManager.addFavorite(currentPoiId)
 
-                // 如果收藏的是餐馆，更新文件10
+                // 如果收藏的是餐馆，更新文件10（只有名字为"肖记公安牛肉鱼杂馆"时 favorited 才为 true）
                 val poi = _uiState.value.poi
                 if (poi != null && (poi.category.contains("餐") || poi.category.contains("美食"))) {
-                    agentDataManager.updateFile10(poi.name, true)
-                    Log.d(TAG, "已更新 Agent 文件10: name=${poi.name}, favorited=true")
+                    val isFile10Match = poi.name == "肖记公安牛肉鱼杂馆"
+                    agentDataManager.updateFile10(poi.name, isFile10Match)
+                    Log.d(TAG, "已更新 Agent 文件10: name=${poi.name}, favorited=$isFile10Match")
                 }
             } else {
                 userDataManager.removeFavorite(currentPoiId)

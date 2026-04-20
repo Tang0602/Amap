@@ -1,152 +1,69 @@
 """
-指令 3 验证脚本：告诉我账号的名字和id
+任务：告诉我账号的名字和id。把你的答案放在<ans>和</ans>之间。
 
 答案：
 - 名字：高德用户
 - id：284834783
 
-功能说明：
-- 验证应用是否正确记录了用户账号的名字和 ID 信息
-- 通过 ADB 读取应用私有存储中的 JSON 文件
-- 检查 JSON 文件中是否包含必要的字段：userId（用户ID）、userName（用户名）
-
-验证逻辑：
-1. 使用 ADB 读取 3_account_info.json 文件
-2. 解析 JSON 内容
-3. 验证 userId 字段不为空
-4. 验证 userName 字段不为空
-5. 返回验证结果（PASS/FAIL）
 """
 
-import json
-import subprocess
-import sys
+import logging
+import re
 
-# 预设的正确答案
-EXPECTED_USER_NAME = "高德用户"
-EXPECTED_USER_ID = "284834783"
-
-
-def verify_account_info(device_id=None):
+def validate(result=None, **kwargs):
     """
-    验证账号名字和 ID 信息
-
-    参数：
-        device_id (str): Android 设备 ID，如果为 None 则使用默认设备
-
-    返回：
-        bool: 验证通过返回 True，否则返回 False
+    宽容模式校验：
+    1. 优先从 <ans> 提取，如果没有标签则搜索全文。
+    2. 只要全文包含预期的“名字”和“ID”关键字，即视为通过。
     """
-    try:
-        # 构建 ADB 命令，读取应用私有存储中的 JSON 文件
-        cmd = ["adb"]
-        if device_id:
-            cmd.extend(["-s", device_id])
-        cmd.extend([
-            "exec-out",
-            "run-as",
-            "com.example.amap_sim",  # 应用包名
-            "cat",
-            "files/3_account_info.json"  # JSON 文件路径
-        ])
+    # 预设的两个核心关键信息
+    EXPECTED_NAME = "高德用户"
+    EXPECTED_ID = "284834783"
 
-        print("正在执行 ADB 命令读取文件...")
-        result = subprocess.run(cmd, capture_output=True, text=False, check=True)
-
-        # 处理输出编码（支持 UTF-8 和 GBK）
-        try:
-            stdout_text = result.stdout.decode("utf-8")
-        except UnicodeDecodeError:
-            try:
-                stdout_text = result.stdout.decode("gbk")
-            except UnicodeDecodeError:
-                stdout_text = result.stdout.decode("utf-8", errors="ignore")
-
-        # 检查文件是否为空
-        if not stdout_text.strip():
-            print("❌ FAIL: JSON 文件为空")
-            return False
-
-        # 解析 JSON 内容
-        print("正在解析 JSON 内容...")
-        json_data = json.loads(stdout_text)
-
-        # 验证必要字段是否存在
-        if "userId" not in json_data:
-            print("❌ FAIL: 缺少 'userId' 字段")
-            return False
-
-        if "userName" not in json_data:
-            print("❌ FAIL: 缺少 'userName' 字段")
-            return False
-
-        # 获取字段值
-        user_id = json_data["userId"]
-        user_name = json_data["userName"]
-
-        # 验证字段值是否有效
-        if not user_id or user_id == "":
-            print("❌ FAIL: 'userId' 字段为空")
-            print(f"   当前值: '{user_id}'")
-            return False
-
-        if not user_name or user_name == "":
-            print("❌ FAIL: 'userName' 字段为空")
-            print(f"   当前值: '{user_name}'")
-            return False
-
-        # 验证用户ID是否完全匹配预设答案
-        if str(user_id) != EXPECTED_USER_ID:
-            print("❌ FAIL: 用户ID不匹配预期答案")
-            print(f"   预期答案: {EXPECTED_USER_ID}")
-            print(f"   实际结果: {user_id}")
-            return False
-
-        # 验证用户名是否完全匹配预设答案
-        if str(user_name) != EXPECTED_USER_NAME:
-            print("❌ FAIL: 用户名不匹配预期答案")
-            print(f"   预期答案: {EXPECTED_USER_NAME}")
-            print(f"   实际结果: {user_name}")
-            return False
-
-        # 验证通过，输出结果
-        print("✓ PASS: 账号信息验证成功")
-        print(f"   用户 ID: {user_id}")
-        print(f"   用户名: {user_name}")
-        return True
-
-    except subprocess.CalledProcessError as e:
-        print(f"❌ FAIL: ADB 命令执行失败 - {e}")
-        try:
-            error_text = e.stderr.decode("utf-8") if e.stderr else "无错误输出"
-        except:
-            error_text = "无法解码错误信息"
-        print(f"   错误信息: {error_text}")
+    if not result or "final_message" not in result:
+        logging.error("✗ 测试失败 - AI 未返回任何内容")
         return False
 
-    except json.JSONDecodeError as e:
-        print(f"❌ FAIL: JSON 解析错误 - {e}")
-        print(f"   原始内容: {stdout_text}")
-        return False
+    final_msg = str(result["final_message"])
 
-    except Exception as e:
-        print(f"❌ FAIL: 未预期的错误 - {e}")
-        return False
-
-
-if __name__ == "__main__":
-    print("=" * 60)
-    print("指令 3 验证：告诉我账号的名字和id")
-    print("=" * 60)
-
-    # 执行验证
-    success = verify_account_info()
-
-    # 输出最终结果
-    print("=" * 60)
-    if success:
-        print("✓ 验证通过")
-        sys.exit(0)
+    # --- 步骤 1: 提取待检测的文本 ---
+    # 尝试寻找 <ans> 标签
+    tag_match = re.search(r"<ans>\s*(.*?)\s*</ans>", final_msg, re.IGNORECASE | re.DOTALL)
+    
+    if tag_match:
+        # 如果有标签，我们只检测标签里的内容
+        text_to_check = tag_match.group(1).strip()
+        logging.info(f"  → 从 <ans> 标签中提取到内容: '{text_to_check}'")
     else:
-        print("✗ 验证失败")
-        sys.exit(1)
+        # 如果没有标签，我们宽容一点，直接检测整个回复全文
+        text_to_check = final_msg.strip()
+        logging.info("  ⚠ 未找到 <ans> 标签，将对全文进行关键字检索。")
+
+    # --- 步骤 2: 宽容比对 (包含匹配) ---
+    # 检查名字和 ID 是否都在提取到的文本中
+    # 使用 in 操作符而不是 ==，这样即便 AI 多说了话（如“名字是：xxx”）也能过
+    name_found = EXPECTED_NAME in text_to_check
+    id_found = EXPECTED_ID in text_to_check
+
+    if name_found and id_found:
+        logging.info(f"✓ 检测成功 - 找到了关键信息: '{EXPECTED_NAME}' 和 '{EXPECTED_ID}'")
+        return True
+    else:
+        # 给出详细的错误提示，方便调试
+        missing = []
+        if not name_found: missing.append(f"名字({EXPECTED_NAME})")
+        if not id_found: missing.append(f"ID({EXPECTED_ID})")
+        logging.error(f"✗ 检测失败 - 回复中缺少: {', '.join(missing)}")
+        return False
+if __name__ == "__main__":
+    # 本地手动运行脚本时的逻辑（主要用于显示人工步骤）
+    logging.basicConfig(level=logging.INFO, format='%(message)s')
+    
+    print("=" * 70)
+    print("任务 3：告诉我账号的名字和id")
+    print("=" * 70)
+    
+    print("\n📋 人工操作步骤：")
+    print("  1. 点击更多")
+    print("  2. 名字和id")
+    print("\n🔍 正在等待 Runner 调用 AI 进行验证...")

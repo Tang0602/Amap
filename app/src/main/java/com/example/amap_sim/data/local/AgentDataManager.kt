@@ -212,8 +212,6 @@ class AgentDataManager(private val context: Context) {
             val data = JSONObject().apply {
                 put("deleted", false)
                 put("destinationName", "")
-                put("routeId", "")
-                put("timestamp", 0L)
             }
             file.writeText(data.toString(4))
             Log.d(TAG, "创建文件: $FILE_9_DELETE_RECENT_ROUTE")
@@ -599,13 +597,11 @@ class AgentDataManager(private val context: Context) {
     }
 
     /** 更新文件9：删除导航到M+购物中心的历史记录 */
-    fun updateFile9(deleted: Boolean, destinationName: String, routeId: String, timestamp: Long) {
+    fun updateFile9(deleted: Boolean, destinationName: String) {
         val file = File(context.filesDir, FILE_9_DELETE_RECENT_ROUTE)
         val data = JSONObject().apply {
             put("deleted", deleted)
             put("destinationName", destinationName)
-            put("routeId", routeId)
-            put("timestamp", timestamp)
         }
         file.writeText(data.toString(4))
         Log.d(TAG, "更新文件: $FILE_9_DELETE_RECENT_ROUTE")

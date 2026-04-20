@@ -487,9 +487,11 @@ class RouteViewModel : ViewModel() {
         val transportMode = selectedProfile.displayName  // "步行", "骑行", or "驾车"
         val fullDestination = "$transportMode 到 $destinationName"
 
-        // 更新 Agent 数据文件7（指令7检测用）
-        agentDataManager.updateFile7(fullDestination, true)
-        Log.d(TAG, "已更新 Agent 文件7: destination=$fullDestination, started=true")
+        // 更新 Agent 数据文件7（指令7：步行导航去M+购物中心）
+        // 每次导航都更新 destination，但只有满足条件时 started 才为 true
+        val isFile7Match = destinationName.contains("M+") && selectedProfile == TravelProfile.FOOT
+        agentDataManager.updateFile7(fullDestination, isFile7Match)
+        Log.d(TAG, "已更新 Agent 文件7: destination=$fullDestination, started=$isFile7Match")
 
         // 更新 Agent 数据文件16（指令16检测用：步行导航去肖记公安牛肉鱼杂馆）
         // 每次导航都更新 destination 和 mode，但只有满足条件时 started 才为 true

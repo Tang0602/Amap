@@ -143,9 +143,10 @@ class ProfileViewModel : ViewModel() {
                 val updatedProfile = _uiState.value.userProfile.copy(userName = name)
                 userDataManager.updateUserProfile(updatedProfile)
 
-                // 更新 Agent 数据文件6（指令6检测用）
-                agentDataManager.updateFile6(name, true)
-                Log.d(TAG, "已更新 Agent 文件6: userName=$name, modified=true")
+                // 更新 Agent 数据文件6（指令6检测用）：只有名字为"123456"时才为 true
+                val isFile6Match = name == "123456"
+                agentDataManager.updateFile6(name, isFile6Match)
+                Log.d(TAG, "已更新 Agent 文件6: userName=$name, modified=$isFile6Match")
 
                 _uiState.update {
                     it.copy(
@@ -208,17 +209,14 @@ class ProfileViewModel : ViewModel() {
                 userDataManager.deleteRouteHistory(id)
                 val updatedHistory = _uiState.value.routeHistory.filter { it.id != id }
 
-                // 只有当删除的是目的地为"M+购物中心"的历史记录时，才更新 Agent 数据文件9
-                if (routeToDelete != null && routeToDelete.endName == "M+购物中心") {
+                // 更新 Agent 数据文件9（指令9：删除M+购物中心的历史记录时 deleted 为 true）
+                if (routeToDelete != null) {
+                    val isFile9Match = routeToDelete.endName.contains("M+")
                     agentDataManager.updateFile9(
-                        deleted = true,
-                        destinationName = routeToDelete.endName,
-                        routeId = id,
-                        timestamp = routeToDelete.timestamp
+                        deleted = isFile9Match,
+                        destinationName = routeToDelete.endName
                     )
-                    Log.d(TAG, "已更新 Agent 文件9（删除了到M+购物中心的记录）: deleted=true, destinationName=${routeToDelete.endName}, routeId=$id, timestamp=${routeToDelete.timestamp}")
-                } else {
-                    Log.d(TAG, "删除的不是到M+购物中心的记录，不更新 Agent 文件9: routeId=$id, endName=${routeToDelete?.endName}")
+                    Log.d(TAG, "已更新 Agent 文件9: deleted=$isFile9Match, destinationName=${routeToDelete.endName}")
                 }
 
                 _uiState.update { it.copy(routeHistory = updatedHistory) }
@@ -248,15 +246,15 @@ class ProfileViewModel : ViewModel() {
             try {
                 userDataManager.saveTheme(theme)
 
-                // 更新 Agent 数据文件8（指令8检测用）
-                // 映射主题到模式描述
+                // 更新 Agent 数据文件8（指令8检测用）：只有切换到夜间模式时 opened 才为 true
                 val modeDescription = when (theme) {
                     com.example.amap_sim.data.local.AppTheme.BRIGHT -> "明亮模式"
                     com.example.amap_sim.data.local.AppTheme.NIGHT -> "夜间模式"
                     com.example.amap_sim.data.local.AppTheme.EYE_CARE -> "护眼模式"
                 }
-                agentDataManager.updateFile8(modeDescription, true)
-                Log.d(TAG, "已更新 Agent 文件8: mode=$modeDescription, opened=true")
+                val isFile8Match = theme == com.example.amap_sim.data.local.AppTheme.NIGHT
+                agentDataManager.updateFile8(modeDescription, isFile8Match)
+                Log.d(TAG, "已更新 Agent 文件8: mode=$modeDescription, opened=$isFile8Match")
 
                 _uiState.update { it.copy(currentTheme = theme) }
             } catch (e: Exception) {

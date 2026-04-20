@@ -1,146 +1,54 @@
 """
-指令 2 验证脚本：告诉我第一次导航去了哪个地点
-
-答案：A Giraffe Coffee&Cacao
-
-功能说明：
-- 验证应用是否正确记录了最近一次导航的目的地信息
-- 通过 ADB 读取应用私有存储中的 JSON 文件
-- 检查 JSON 文件中是否包含必要的字段：destination（目的地）、timestamp（时间戳）
-
-验证逻辑：
-1. 使用 ADB 读取 2_last_navigation.json 文件
-2. 解析 JSON 内容
-3. 验证 destination 字段不为空
-4. 验证 timestamp 字段大于 0（表示已记录导航）
-5. 返回验证结果（PASS/FAIL）
+指令 2 验证脚本：告诉我第一次导航去了哪个地点，把你的答案放在<ans>和</ans>之间.
+难度：低
+类型：信息检索类
 """
 
-import json
-import subprocess
+import logging
 import sys
-from datetime import datetime
-
-# 预设的正确答案
-EXPECTED_DESTINATION = "A Giraffe Coffee&Cacao"
+import re
 
 
-def verify_last_navigation(device_id=None):
+def validate(result=None, **kwargs):
     """
-    验证最近一次导航目的地信息
-
-    参数：
-        device_id (str): Android 设备 ID，如果为 None 则使用默认设备
-
-    返回：
-        bool: 验证通过返回 True，否则返回 False
+    宽容模式校验器：
+    1. 优先提取 <ans> 标签内容，若无标签则扫描全文。
+    2. 只要回答中包含预设的关键字（之一）即可通过，不要求完全匹配。
     """
-    try:
-        # 构建 ADB 命令，读取应用私有存储中的 JSON 文件
-        cmd = ["adb"]
-        if device_id:
-            cmd.extend(["-s", device_id])
-        cmd.extend([
-            "exec-out",
-            "run-as",
-            "com.example.amap_sim",  # 应用包名
-            "cat",
-            "files/2_last_navigation.json"  # JSON 文件路径
-        ])
+    # 【宽容设置】这里定义正确答案的关键字列表
+    # 只要 AI 提到了其中任何一个词，就算对
+    EXPECTED_KEYWORDS = "Lilly Cafe"
 
-        print("正在执行 ADB 命令读取文件...")
-        result = subprocess.run(cmd, capture_output=True, text=False, check=True)
+    # 1. 检查结果是否存在
+    if not result or "final_message" not in result:
+        logging.error("✗ 测试失败 - AI 未能生成任何回复。")
+        return False
 
-        # 处理输出编码（支持 UTF-8 和 GBK）
-        try:
-            stdout_text = result.stdout.decode("utf-8")
-        except UnicodeDecodeError:
-            try:
-                stdout_text = result.stdout.decode("gbk")
-            except UnicodeDecodeError:
-                stdout_text = result.stdout.decode("utf-8", errors="ignore")
+    final_msg = str(result["final_message"])
 
-        # 检查文件是否为空
-        if not stdout_text.strip():
-            print("❌ FAIL: JSON 文件为空")
-            return False
+    # 2. 提取待检测文本 (正则匹配 <ans>内容 </ans>)
+    tag_match = re.search(r"<ans>\s*(.*?)\s*</ans>", final_msg, re.IGNORECASE | re.DOTALL)
+    
+    if tag_match:
+        text_to_check = tag_match.group(1).strip()
+        logging.info(f"  → 从 <ans> 标签中提取到: '{text_to_check}'")
+    else:
+        # 宽容处理：如果没有标签，直接搜索全文
+        text_to_check = final_msg.strip()
+        logging.warning("  ⚠ 未找到 <ans> 标签，已转为全文模糊匹配。")
 
-        # 解析 JSON 内容
-        print("正在解析 JSON 内容...")
-        json_data = json.loads(stdout_text)
+    # 3. 宽容比对逻辑：any() 只要匹配到一个关键字就通过
+    # 比如 AI 回答 "是肖记店"，"肖记" in "是肖记店" 也会返回 True
+    is_correct = any(kw in text_to_check for kw in EXPECTED_KEYWORDS)
 
-        # 验证必要字段是否存在
-        if "destination" not in json_data:
-            print("❌ FAIL: 缺少 'destination' 字段")
-            return False
-
-        if "timestamp" not in json_data:
-            print("❌ FAIL: 缺少 'timestamp' 字段")
-            return False
-
-        # 获取字段值
-        destination = json_data["destination"]
-        timestamp = json_data["timestamp"]
-
-        # 验证目的地是否包含预设答案
-        if EXPECTED_DESTINATION not in destination:
-            print("❌ FAIL: 目的地中未包含预期答案")
-            print(f"   预期答案: {EXPECTED_DESTINATION}")
-            print(f"   实际结果: {destination}")
-            return False
-
-        # 验证时间戳是否有效
-        if timestamp <= 0:
-            print("❌ FAIL: 'timestamp' 字段无效（应大于 0，表示已记录导航）")
-            print(f"   当前值: {timestamp}")
-            return False
-
-        # 验证通过，输出结果
-        print("✓ PASS: 最近一次导航目的地验证成功")
-        print(f"   目的地: {destination}")
-        print(f"   时间戳: {timestamp}")
-
-        # 尝试将时间戳转换为可读时间
-        try:
-            readable_time = datetime.fromtimestamp(timestamp / 1000).strftime('%Y-%m-%d %H:%M:%S')
-            print(f"   导航时间: {readable_time}")
-        except:
-            pass
-
+    if is_correct:
+        logging.info(f"✓ 检测成功 - AI 回复包含了正确关键字: {EXPECTED_KEYWORDS}")
         return True
-
-    except subprocess.CalledProcessError as e:
-        print(f"❌ FAIL: ADB 命令执行失败 - {e}")
-        try:
-            error_text = e.stderr.decode("utf-8") if e.stderr else "无错误输出"
-        except:
-            error_text = "无法解码错误信息"
-        print(f"   错误信息: {error_text}")
+    else:
+        logging.error(f"✗ 检测失败 - 回复中未找到正确答案。")
+        logging.error(f"  期望包含: {EXPECTED_KEYWORDS}")
+        logging.error(f"  实际提取内容: '{text_to_check}'")
         return False
-
-    except json.JSONDecodeError as e:
-        print(f"❌ FAIL: JSON 解析错误 - {e}")
-        print(f"   原始内容: {stdout_text}")
-        return False
-
-    except Exception as e:
-        print(f"❌ FAIL: 未预期的错误 - {e}")
-        return False
-
 
 if __name__ == "__main__":
-    print("=" * 60)
-    print("指令 2 验证：告诉我最近一次导航去了哪个地点")
-    print("=" * 60)
-
-    # 执行验证
-    success = verify_last_navigation()
-
-    # 输出最终结果
-    print("=" * 60)
-    if success:
-        print("✓ 验证通过")
-        sys.exit(0)
-    else:
-        print("✗ 验证失败")
-        sys.exit(1)
+    logging.basicConfig(level=logging.INFO, format='%(message)s')

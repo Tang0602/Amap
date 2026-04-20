@@ -1,61 +1,64 @@
 """
-指令 1 验证脚本：告诉我美食排行榜中评分最高的美食, 把你的答案放在<ans>和</ans>之间.
-
-答案：肖记公安牛肉鱼杂馆
+任务：进入周边界面，告诉我美食排行榜中评分最高的美食, 把你的答案放在<ans>和</ans>之间.
+难度：低
+类型：信息检索类
 """
 
+import logging
+import sys
 import re
-from openai import OpenAI
 
-# 1. 配置你的 API 信息
-client = OpenAI(
-    api_key="0915fc93-c8b4-4d1d-9f9d-5ab7b9ea8ea9",
-    base_url="https://ark.cn-beijing.volces.com/api/v3"
-)
-MODEL_ID = "ep-20260415155052-4htzp"
+def validate(result=None, **kwargs):
+    """
+    宽容模式校验器：
+    1. 优先提取 <ans> 标签内容，若无标签则扫描全文。
+    2. 只要回答中包含预设的关键字（之一）即可通过，不要求完全匹配。
+    """
+    # 【宽容设置】这里定义正确答案的关键字列表
+    # 只要 AI 提到了其中任何一个词，就算对
+    EXPECTED_KEYWORDS = ["肖记公安牛肉鱼杂馆", "肖记", "牛肉鱼杂馆"]
 
-# 2. 定义校验逻辑
-def validate_answer(ai_message):
-    EXPECTED_ANSWER = "肖记公安牛肉鱼杂馆"
-    ANSWER_PATTERN = re.compile(r"<ans>\s*(.*?)\s*</ans>", re.IGNORECASE | re.DOTALL)
-    
-    match = ANSWER_PATTERN.search(ai_message)
-    if not match:
-        print("错误：AI 的回答中没有包含 <ans> 标签")
+    # 1. 检查结果是否存在
+    if not result or "final_message" not in result:
+        logging.error("✗ 测试失败 - AI 未能生成任何回复。")
         return False
-    
-    answer = match.group(1).strip()
-    print(f"AI 提取出的答案是: {answer}")
-    return answer == EXPECTED_ANSWER
 
-# 3. 执行真正的 AI 调用
-def run_real_ai():
-    print("正在请求豆包 AI 模型...")
+    final_msg = str(result["final_message"])
+
+    # 2. 提取待检测文本 (正则匹配 <ans>内容 </ans>)
+    tag_match = re.search(r"<ans>\s*(.*?)\s*</ans>", final_msg, re.IGNORECASE | re.DOTALL)
     
-    try:
-        # 发送指令给 AI
-        completion = client.chat.completions.create(
-            model=MODEL_ID,
-            messages=[
-                {"role": "user", "content": "告诉我美食排行榜中评分最高的美食, 把你的答案放在<ans>和</ans>之间。简短回答"}
-            ]
-        )
-        
-        # 获取 AI 的回复
-        ai_response = completion.choices[0].message.content
-        print(f"AI 完整回答: \n{ai_response}")
-        print("-" * 30)
-        
-        # 验证答案
-        result = validate_answer(ai_response)
-        
-        if result:
-            print("✅ 验证通过！AI 给出了正确答案。")
-        else:
-            print("❌ 验证失败！AI 的回答不符合预期。")
-            
-    except Exception as e:
-        print(f"发生错误: {e}")
+    if tag_match:
+        text_to_check = tag_match.group(1).strip()
+        logging.info(f"  → 从 <ans> 标签中提取到: '{text_to_check}'")
+    else:
+        # 宽容处理：如果没有标签，直接搜索全文
+        text_to_check = final_msg.strip()
+        logging.warning("  ⚠ 未找到 <ans> 标签，已转为全文模糊匹配。")
+
+    # 3. 宽容比对逻辑：any() 只要匹配到一个关键字就通过
+    # 比如 AI 回答 "是肖记店"，"肖记" in "是肖记店" 也会返回 True
+    is_correct = any(kw in text_to_check for kw in EXPECTED_KEYWORDS)
+
+    if is_correct:
+        logging.info(f"✓ 检测成功 - AI 回复包含了正确关键字: {EXPECTED_KEYWORDS}")
+        return True
+    else:
+        logging.error(f"✗ 检测失败 - 回复中未找到正确答案。")
+        logging.error(f"  期望包含: {EXPECTED_KEYWORDS}")
+        logging.error(f"  实际提取内容: '{text_to_check}'")
+        return False
 
 if __name__ == "__main__":
-    run_real_ai()
+    logging.basicConfig(level=logging.INFO, format='%(message)s')
+    
+    print("=" * 70)
+    print("任务 1 (宽容模式)：告知评分最高的店名")
+    print("=" * 70)
+    
+    print("\n📋 人工操作步骤：")
+    print("  1. 进入美食排行榜")
+    print("  2. 确认最高分是“肖记公安牛肉鱼杂馆”")
+    print("\n🔍 正在等待 Runner 调用 AI 进行验证...")
+
+   

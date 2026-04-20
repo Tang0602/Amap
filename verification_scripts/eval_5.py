@@ -1,138 +1,50 @@
 """
-指令 5 验证脚本：告诉我收藏夹收藏了几个地点
+指令 5 验证脚本：告诉我收藏夹收藏了几个地点 把你的答案放在<ans>和</ans>之间。
 
-答案：2或者两
+答案：3或者三
 
-功能说明：
-- 验证应用是否正确记录了收藏夹中收藏的地点数量
-- 通过 ADB 读取应用私有存储中的 JSON 文件
-- 检查 JSON 文件中是否包含必要的字段：count（收藏数量）
-
-验证逻辑：
-1. 使用 ADB 读取 5_favorites_count.json 文件
-2. 解析 JSON 内容
-3. 验证 count 字段存在
-4. 验证 count 字段大于等于 0
-5. 返回验证结果（PASS/FAIL）
 """
-
-import json
-import subprocess
+import logging
 import sys
+import re
 
-# 预设的正确答案（可能的表达方式）
-EXPECTED_ANSWERS = ["2个", "2项", "两个", "两项"]
-
-
-def verify_favorites_count(device_id=None):
+def validate(result=None, **kwargs):
     """
-    验证收藏夹地点数量信息
-
-    参数：
-        device_id (str): Android 设备 ID，如果为 None 则使用默认设备
-
-    返回：
-        bool: 验证通过返回 True，否则返回 False
+    更宽容的校验器：
+    只要 AI 的回答中包含了关键词列表里的【任意一个】，就算通过。
     """
-    try:
-        # 构建 ADB 命令，读取应用私有存储中的 JSON 文件
-        cmd = ["adb"]
-        if device_id:
-            cmd.extend(["-s", device_id])
-        cmd.extend([
-            "exec-out",
-            "run-as",
-            "com.example.amap_sim",  # 应用包名
-            "cat",
-            "files/5_favorites_count.json"  # JSON 文件路径
-        ])
+    # 这里放所有可能的正确表达方式（比如数字和汉字大写）
+    EXPECTED_KEYWORDS = ["3", "三"] 
 
-        print("正在执行 ADB 命令读取文件...")
-        result = subprocess.run(cmd, capture_output=True, text=False, check=True)
+    if not result or "final_message" not in result:
+        return False
 
-        # 处理输出编码（支持 UTF-8 和 GBK）
-        try:
-            stdout_text = result.stdout.decode("utf-8")
-        except UnicodeDecodeError:
-            try:
-                stdout_text = result.stdout.decode("gbk")
-            except UnicodeDecodeError:
-                stdout_text = result.stdout.decode("utf-8", errors="ignore")
+    final_msg = str(result["final_message"])
 
-        # 检查文件是否为空
-        if not stdout_text.strip():
-            print("❌ FAIL: JSON 文件为空")
-            return False
+    # 1. 提取检测范围（有标签看标签，没标签看全文）
+    tag_match = re.search(r"<ans>\s*(.*?)\s*</ans>", final_msg, re.IGNORECASE | re.DOTALL)
+    text_to_check = tag_match.group(1).strip() if tag_match else final_msg.strip()
 
-        # 解析 JSON 内容
-        print("正在解析 JSON 内容...")
-        json_data = json.loads(stdout_text)
+    # 2. 宽容匹配逻辑：使用 any()
+    # 只要 EXPECTED_KEYWORDS 里的【任意一个】词在 text_to_check 中，就返回 True
+    is_correct = any(kw in text_to_check for kw in EXPECTED_KEYWORDS)
 
-        # 验证必要字段是否存在
-        if "count" not in json_data:
-            print("❌ FAIL: 缺少 'count' 字段")
-            return False
-
-        # 获取字段值
-        count = json_data["count"]
-
-        # 将count转换为字符串进行检查
-        count_str = str(count)
-
-        # 验证收藏数量描述是否包含预设答案中的任意一个
-        found_match = False
-        matched_answer = None
-        for expected in EXPECTED_ANSWERS:
-            if expected in count_str:
-                found_match = True
-                matched_answer = expected
-                break
-
-        if not found_match:
-            print("❌ FAIL: 收藏数量描述中未包含预期答案")
-            print(f"   预期答案（任意一个）: {', '.join(EXPECTED_ANSWERS)}")
-            print(f"   实际结果: {count_str}")
-            return False
-
-        # 验证通过，输出结果
-        print("✓ PASS: 收藏夹地点数量验证成功")
-        print(f"   收藏��量: {count_str}")
-        print(f"   匹配到的答案: {matched_answer}")
-
+    if is_correct:
+        logging.info(f"✅ 检测成功！匹配到关键信息之一: {EXPECTED_KEYWORDS}")
         return True
-
-    except subprocess.CalledProcessError as e:
-        print(f"❌ FAIL: ADB 命令执行失败 - {e}")
-        try:
-            error_text = e.stderr.decode("utf-8") if e.stderr else "无错误输出"
-        except:
-            error_text = "无法解码错误信息"
-        print(f"   错误信息: {error_text}")
+    else:
+        logging.error(f"❌ 检测失败！回复中未匹配到预设关键词。预期其中之一: {EXPECTED_KEYWORDS}, 实际得到: '{text_to_check}'")
         return False
-
-    except json.JSONDecodeError as e:
-        print(f"❌ FAIL: JSON 解析错误 - {e}")
-        print(f"   原始内容: {stdout_text}")
-        return False
-
-    except Exception as e:
-        print(f"❌ FAIL: 未预期的错误 - {e}")
-        return False
-
 
 if __name__ == "__main__":
-    print("=" * 60)
-    print("指令 5 验证：告诉我收藏夹收藏了几个地点")
-    print("=" * 60)
-
-    # 执行验证
-    success = verify_favorites_count()
-
-    # 输出最终结果
-    print("=" * 60)
-    if success:
-        print("✓ 验证通过")
-        sys.exit(0)
-    else:
-        print("✗ 验证失败")
-        sys.exit(1)
+    # 本地手动运行脚本时的逻辑（主要用于显示人工步骤）
+    logging.basicConfig(level=logging.INFO, format='%(message)s')
+    
+    print("=" * 70)
+    print("告诉我收藏夹收藏了几个地点")
+    print("=" * 70)
+    
+    print("\n📋 人工操作步骤：")
+    print("  1. 点击更多")
+    print("  2. 点击收藏夹")
+    print("\n🔍 正在等待 Runner 调用 AI 进行验证...")

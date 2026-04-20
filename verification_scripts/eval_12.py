@@ -1,150 +1,42 @@
 """
-指令 12 验证脚本：告诉我八七会议会址纪念馆的开放时间有几个小时
+指令 12 验证脚本：告诉我八七会议会址纪念馆的开放时间有几个小时 把你的答案放在<ans>和</ans>之间。
 
-答案：8个小时 或 8 或 八个小时
 
-功能说明：
-- 验证应用是否正确回答了开放时间
-- 通过 ADB 读取应用私有存储中的 JSON 文件
-- 检查 JSON 文件中是否包含必要的字段：poiName（地点名称）、openingHours（开放小时数）
-
-验证逻辑：
-1. 使用 ADB 读取 12_opening_hours.json 文件
-2. 解析 JSON 内容
-3. 验证 openingHours 字段包含 "8" 或 "八"
-4. 验证 poiName 字段不为空
-5. 返回验证结果（PASS/FAIL）
 """
 
-import json
-import subprocess
+import logging
 import sys
+import re
 
-# 预设的正确答案（可能的表达方式）
-EXPECTED_HOURS = ["8", "八"]
-
-
-def verify_opening_hours(device_id=None):
+def validate(result=None, **kwargs):
     """
-    验证开放时间信息
-
-    参数：
-        device_id (str): Android 设备 ID，如果为 None 则使用默认设备
-
-    返回：
-        bool: 验证通过返回 True，否则返回 False
+    更宽容的校验器：
+    只要 AI 的回答中包含了关键词列表里的【任意一个】，就算通过。
     """
-    try:
-        # 构建 ADB 命令，读取应用私有存储中的 JSON 文件
-        cmd = ["adb"]
-        if device_id:
-            cmd.extend(["-s", device_id])
-        cmd.extend([
-            "exec-out",
-            "run-as",
-            "com.example.amap_sim",  # 应用包名
-            "cat",
-            "files/12_opening_hours.json"  # JSON 文件路径
-        ])
+    # 这里放所有可能的正确表达方式（比如数字和汉字大写）
+    EXPECTED_KEYWORDS = ["8", "八"] 
 
-        print("正在执行 ADB 命令读取文件...")
-        result = subprocess.run(cmd, capture_output=True, text=False, check=True)
+    if not result or "final_message" not in result:
+        return False
 
-        # 处理输出编码（支持 UTF-8 和 GBK）
-        try:
-            stdout_text = result.stdout.decode("utf-8")
-        except UnicodeDecodeError:
-            try:
-                stdout_text = result.stdout.decode("gbk")
-            except UnicodeDecodeError:
-                stdout_text = result.stdout.decode("utf-8", errors="ignore")
+    final_msg = str(result["final_message"])
 
-        # 检查文件是否为空
-        if not stdout_text.strip():
-            print("❌ FAIL: JSON 文件为空")
-            return False
+    # 1. 提取检测范围（有标签看标签，没标签看全文）
+    tag_match = re.search(r"<ans>\s*(.*?)\s*</ans>", final_msg, re.IGNORECASE | re.DOTALL)
+    text_to_check = tag_match.group(1).strip() if tag_match else final_msg.strip()
 
-        # 解析 JSON 内容
-        print("正在解析 JSON 内容...")
-        json_data = json.loads(stdout_text)
+    # 2. 宽容匹配逻辑：使用 any()
+    # 只要 EXPECTED_KEYWORDS 里的【任意一个】词在 text_to_check 中，就返回 True
+    is_correct = any(kw in text_to_check for kw in EXPECTED_KEYWORDS)
 
-        # 验证必要字段是否存在
-        if "poiName" not in json_data:
-            print("❌ FAIL: 缺少 'poiName' 字段")
-            return False
-
-        if "openingHours" not in json_data:
-            print("❌ FAIL: 缺少 'openingHours' 字段")
-            return False
-
-        # 获取字段值
-        poi_name = json_data["poiName"]
-        opening_hours = json_data["openingHours"]
-
-        # 将开放时间转换为字符串进行检查
-        opening_hours_str = str(opening_hours)
-
-        # 验证开放时间是否包含预设答案中的任意一个
-        found_match = False
-        matched_answer = None
-        for expected in EXPECTED_HOURS:
-            if expected in opening_hours_str:
-                found_match = True
-                matched_answer = expected
-                break
-
-        if not found_match:
-            print("❌ FAIL: 开放时间中未包含预期答案")
-            print(f"   预期答案（任意一个）: {', '.join(EXPECTED_HOURS)}")
-            print(f"   实际结果: {opening_hours_str}")
-            return False
-
-        # 验证地点名称是否有效
-        if not poi_name or poi_name == "":
-            print("❌ FAIL: 'poiName' 字段为空")
-            print(f"   当前值: '{poi_name}'")
-            return False
-
-        # 验证通过，输出结果
-        print("✓ PASS: 开放时间验证成功")
-        print(f"   地点名称: {poi_name}")
-        print(f"   开放时间: {opening_hours_str}")
-        print(f"   匹配到的答案: {matched_answer}")
-
+    if is_correct:
+        logging.info(f"✅ 检测成功！匹配到关键信息之一: {EXPECTED_KEYWORDS}")
         return True
-
-    except subprocess.CalledProcessError as e:
-        print(f"❌ FAIL: ADB 命令执行失败 - {e}")
-        try:
-            error_text = e.stderr.decode("utf-8") if e.stderr else "无错误输出"
-        except:
-            error_text = "无法解码错误信息"
-        print(f"   错误信息: {error_text}")
+    else:
+        logging.error(f"❌ 检测失败！回复中未匹配到预设关键词。预期其中之一: {EXPECTED_KEYWORDS}, 实际得到: '{text_to_check}'")
         return False
-
-    except json.JSONDecodeError as e:
-        print(f"❌ FAIL: JSON 解析错误 - {e}")
-        print(f"   原始内容: {stdout_text}")
-        return False
-
-    except Exception as e:
-        print(f"❌ FAIL: 未预期的错误 - {e}")
-        return False
-
 
 if __name__ == "__main__":
-    print("=" * 60)
-    print("指令 12 验证：告诉我八七会议会址纪念馆的开放时间有几个小时")
-    print("=" * 60)
-
-    # 执行验证
-    success = verify_opening_hours()
-
-    # 输出最终结果
-    print("=" * 60)
-    if success:
-        print("✓ 验证通过")
-        sys.exit(0)
-    else:
-        print("✗ 验证失败")
-        sys.exit(1)
+    logging.basicConfig(level=logging.INFO, format='%(message)s')
+    
+    
