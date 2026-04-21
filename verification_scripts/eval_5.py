@@ -14,7 +14,7 @@ def validate(result=None, **kwargs):
     只要 AI 的回答中包含了关键词列表里的【任意一个】，就算通过。
     """
     # 这里放所有可能的正确表达方式（比如数字和汉字大写）
-    EXPECTED_KEYWORDS = ["3", "三"] 
+    EXPECTED_KEYWORDS = ["3", "三","三个","3个"] 
 
     if not result or "final_message" not in result:
         return False
@@ -37,14 +37,55 @@ def validate(result=None, **kwargs):
         return False
 
 if __name__ == "__main__":
-    # 本地手动运行脚本时的逻辑（主要用于显示人工步骤）
-    logging.basicConfig(level=logging.INFO, format='%(message)s')
-    
+    # 配置日志输出格式
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
+
     print("=" * 70)
-    print("告诉我收藏夹收藏了几个地点")
+    print("任务 5：告诉我收藏夹收藏了几个地点")
     print("=" * 70)
-    
     print("\n📋 人工操作步骤：")
     print("  1. 点击更多")
     print("  2. 点击收藏夹")
     print("\n🔍 正在等待 Runner 调用 AI 进行验证...")
+
+    # --- 模拟测试用例 ---
+
+    # 用例 1：正确且带标签
+    test_case_1 = {
+        "final_message": "收藏夹收藏了 <ans>3个</ans> 地点",
+        "expected_eval_result": True,
+    }
+
+    # 用例 2：完全无关的回答
+    test_case_2 = {
+        "final_message": "我无法访问收藏夹信息。",
+        "expected_eval_result": False
+    }
+
+    # 用例 3：错误的数字
+    test_case_3 = {
+        "final_message": "收藏夹收藏了 <ans>5</ans> 个地点",
+        "expected_eval_result": False
+    }
+
+    # 开始执行模拟测试
+    all_tests = [test_case_1, test_case_2, test_case_3]
+    total_passed = 0
+
+    for idx, test in enumerate(all_tests, 1):
+        logging.info(f"\n[测试用例 {idx}]")
+        actual_result = validate(result=test)
+        expected_result = test["expected_eval_result"]
+
+        if actual_result == expected_result:
+            logging.info(f"✅ 结果符合预期 (实际: {actual_result})")
+            total_passed += 1
+        else:
+            logging.error(f"❌ 结果不符合预期！实际: {actual_result}, 期望: {expected_result}")
+
+    print("\n" + "=" * 70)
+    print(f"模拟测试完成：通过 {total_passed}/{len(all_tests)}")
+    print("=" * 70)
+
+    # 如果模拟测试全部通过，则退出码为0
+    sys.exit(0 if total_passed == len(all_tests) else 1)

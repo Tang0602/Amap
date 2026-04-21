@@ -39,7 +39,6 @@ def validate(result=None, **kwargs):
         logging.warning("  ⚠ 未找到 <ans> 标签，已转为全文模糊匹配。")
 
     # 3. 宽容比对逻辑：any() 只要匹配到一个关键字就通过
-    # 比如 AI 回答 "是肖记店"，"肖记" in "是肖记店" 也会返回 True
     is_correct = any(kw in text_to_check for kw in EXPECTED_KEYWORDS)
 
     if is_correct:
@@ -52,5 +51,55 @@ def validate(result=None, **kwargs):
         return False
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format='%(message)s')
+    # 配置日志输出格式
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
 
+    print("=" * 70)
+    print("任务 23：告诉我江汉大学（汉口校区）周边美食排行榜第一名是什么")
+    print("=" * 70)
+    print("\n📋 人工操作步骤：")
+    print("  1. 搜索江汉大学（汉口校区）")
+    print("  2. 查看周边美食排行榜")
+    print("\n🔍 正在等待 Runner 调用 AI 进行验证...")
+
+    # --- 模拟测试用例 ---
+
+    # 用例 1：正确且带标签
+    test_case_1 = {
+        "final_message": "江汉大学（汉口校区）周边美食排行榜第一名是 <ans>Smile and Salad</ans>",
+        "expected_eval_result": True,
+    }
+
+    # 用例 2：完全无关的回答
+    test_case_2 = {
+        "final_message": "我无法找到该校区周边的美食排行榜信息。",
+        "expected_eval_result": False
+    }
+
+    # 用例 3：错误的店名
+    test_case_3 = {
+        "final_message": "江汉大学（汉口校区）周边美食排行榜第一名是 <ans>Smile</ans>",
+        "expected_eval_result": False
+    }
+
+    # 开始执行模拟测试
+    all_tests = [test_case_1, test_case_2, test_case_3]
+    total_passed = 0
+
+    for idx, test in enumerate(all_tests, 1):
+        logging.info(f"\n[测试用例 {idx}]")
+        actual_result = validate(result=test)
+        expected_result = test["expected_eval_result"]
+
+        if actual_result == expected_result:
+            logging.info(f"✅ 结果符合预期 (实际: {actual_result})")
+            total_passed += 1
+        else:
+            logging.error(f"❌ 结果不符合预期！实际: {actual_result}, 期望: {expected_result}")
+
+    print("\n" + "=" * 70)
+    print(f"模拟测试完成：通过 {total_passed}/{len(all_tests)}")
+    print("=" * 70)
+
+    # 如果模拟测试全部通过，则退出码为0
+    sys.exit(0 if total_passed == len(all_tests) else 1)

@@ -1,6 +1,7 @@
 """
 指令 4 验证脚本：告诉我周边最近的酒店名字 把你的答案放在<ans>和</ans>之间.
-
+难度：低
+类型：信息检索类
 """
 
 import logging
@@ -10,12 +11,12 @@ import re
 
 def validate(result=None, **kwargs):
     """
-    宽容模式校验器：
-    1. 优先提取 <ans> 标签内容，若无标签则扫描全文。
-    2. 只要回答中包含预设的关键字（之一）即可通过，不要求完全匹配。
+    校验逻辑：
+    1. 必须包含完整的酒店名称 "帅府铂颂饭店"。
+    2. 优先提取 <ans> 标签，若无标签则扫描全文。
     """
-    # 【宽容设置】这里定义正确答案的关键字列表
-    EXPECTED_KEYWORDS = "帅府铂颂饭店"
+    # 这里定义必须出现的【完整】店名
+    EXPECTED_FULL_NAME = "帅府铂颂饭店"
 
     # 1. 检查结果是否存在
     if not result or "final_message" not in result:
@@ -24,37 +25,79 @@ def validate(result=None, **kwargs):
 
     final_msg = str(result["final_message"])
 
-    # 2. 提取待检测文本 (正则匹配 <ans>内容 </ans>)
-    tag_match = re.search(r"<ans>\s*(.*?)\s*</ans>", final_msg, re.IGNORECASE | re.DOTALL)
-    
+    # 2. 提取待检测文本 (优先正则匹配 <ans>内容 </ans>)
+    tag_match = re.search(
+        r"<ans>\s*(.*?)\s*</ans>", final_msg, re.IGNORECASE | re.DOTALL
+    )
+
     if tag_match:
         text_to_check = tag_match.group(1).strip()
-        logging.info(f"  → 从 <ans> 标签中提取到: '{text_to_check}'")
+        logging.info(f"  → 标签提取内容: '{text_to_check}'")
     else:
-        # 宽容处理：如果没有标签，直接搜索全文
+        # 宽容处理：如果没有标签，检查全文
         text_to_check = final_msg.strip()
-        logging.warning("  ⚠ 未找到 <ans> 标签，已转为全文模糊匹配。")
+        logging.warning("  ⚠ 未找到标签，正在检索全文...")
 
-    # 3. 宽容比对逻辑：any() 只要匹配到一个关键字就通过
-    # 比如 AI 回答 "是肖记店"，"肖记" in "是肖记店" 也会返回 True
-    is_correct = any(kw in text_to_check for kw in EXPECTED_KEYWORDS)
-
-    if is_correct:
-        logging.info(f"✓ 检测成功 - AI 回复包含了正确关键字: {EXPECTED_KEYWORDS}")
+    # 3. 严格比对逻辑：必须包含完整的酒店名称
+    # 如果 text_to_check 是 "帅府饭店"，则 "帅府铂颂饭店" in "帅府饭店" 会返回 False
+    if EXPECTED_FULL_NAME in text_to_check:
+        logging.info(f"✓ 检测成功 - 匹配到完整名称: '{EXPECTED_FULL_NAME}'")
         return True
     else:
-        logging.error(f"✗ 检测失败 - 回复中未找到正确答案。")
-        logging.error(f"  期望包含: {EXPECTED_KEYWORDS}")
-        logging.error(f"  实际提取内容: '{text_to_check}'")
+        logging.error(f"✗ 检测失败 - 未能匹配到完整名称。期望: '{EXPECTED_FULL_NAME}'")
         return False
 
+
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format='%(message)s')
+    # 配置日志输出格式
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
+
     print("=" * 70)
-    print("告诉我周边最近的酒店名字")
+    print("任务 4 逻辑验证：帅府铂颂饭店 (全名匹配模式)")
     print("=" * 70)
-    
     print("\n📋 人工操作步骤：")
     print("  1. 点击周边")
     print("  2. 查询周边最近的酒店")
-    print("\n🔍 正在等待 Runner 调用 AI 进行验证...")
+    print("\n🔍 正在进行模拟 Case 验证...")
+
+    # --- 模拟测试用例 ---
+    
+    # 用例 1：正确且带标签
+    test_case_1 = {
+        "final_message": "距离你最近的酒店是 <ans>帅府铂颂饭店</ans>",
+        "expected_eval_result": True,
+    }
+    
+    # 用例 2：回答未找到或无关
+    test_case_2 = {
+        "final_message": "附近没有找到任何酒店信息。", 
+        "expected_eval_result": False
+    }
+    
+    # 用例 3：名称不完整（少写了“铂颂”二字）
+    test_case_3 = {
+        "final_message": "最近的酒店叫 <ans>帅府饭店</ans>",
+        "expected_eval_result": False 
+    }
+
+    # 开始执行模拟测试
+    all_tests = [test_case_1, test_case_2, test_case_3]
+    total_passed = 0
+
+    for idx, test in enumerate(all_tests, 1):
+        logging.info(f"\n[测试用例 {idx}]")
+        actual_result = validate(result=test)
+        expected_result = test["expected_eval_result"]
+        
+        if actual_result == expected_result:
+            logging.info(f"✅ 结果符合预期 (实际: {actual_result})")
+            total_passed += 1
+        else:
+            logging.error(f"❌ 结果不符合预期！实际: {actual_result}, 期望: {expected_result}")
+
+    print("\n" + "=" * 70)
+    print(f"任务 4 模拟测试完成：通过 {total_passed}/{len(all_tests)}")
+    print("=" * 70)
+    
+    # 如果模拟测试全部通过，则退出码为0
+    sys.exit(0 if total_passed == len(all_tests) else 1)
