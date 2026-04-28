@@ -20,7 +20,8 @@
       "Bash(timeout:*)",
       "Bash(dir:*)",
       "Read(//d/Amap/**)",
-      "Bash(./gradlew.bat assembleDebug)"
+      "Bash(./gradlew.bat assembleDebug)",
+      "Bash(python update_poi.py)"
     ],
     "deny": [],
     "ask": []

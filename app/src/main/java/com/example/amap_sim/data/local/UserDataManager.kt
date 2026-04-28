@@ -73,15 +73,25 @@ class UserDataManager(context: Context) {
         try {
             val json = prefs.getString(KEY_ROUTE_HISTORY, null)
             if (json.isNullOrEmpty()) {
-                // 返回预设的历史记录：从我的位置到Lilly Cafe，时间为2020年1月1日
+                // 返回预设的历史记录
                 return@withContext listOf(
+                    RouteHistory(
+                        id = "preset_history_2",
+                        startName = "我的位置",
+                        startLocation = LatLng(30.5928, 114.3055),
+                        endName = "武汉市少儿图书馆",
+                        endLocation = LatLng(30.5845, 114.2994),
+                        timestamp = 1577923200000L,
+                        distance = 1500.0,
+                        duration = 400
+                    ),
                     RouteHistory(
                         id = "preset_history_1",
                         startName = "我的位置",
                         startLocation = LatLng(30.5928, 114.3055),
                         endName = "Lilly Cafe",
-                        endLocation = LatLng(30.5928, 114.3155), // 假设坐标
-                        timestamp = 1577836800000L, // 2020年1月1日
+                        endLocation = LatLng(30.5928, 114.3155),
+                        timestamp = 1577836800000L,
                         distance = 1000.0,
                         duration = 300
                     )
@@ -104,6 +114,16 @@ class UserDataManager(context: Context) {
         } catch (e: Exception) {
             // 出错时返回预设值
             listOf(
+                RouteHistory(
+                    id = "preset_history_2",
+                    startName = "我的位置",
+                    startLocation = LatLng(30.5928, 114.3055),
+                    endName = "武汉市少儿图书馆",
+                    endLocation = LatLng(30.5845, 114.2994),
+                    timestamp = 1577923200000L,
+                    distance = 1500.0,
+                    duration = 400
+                ),
                 RouteHistory(
                     id = "preset_history_1",
                     startName = "我的位置",

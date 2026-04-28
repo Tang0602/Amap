@@ -209,9 +209,9 @@ class ProfileViewModel : ViewModel() {
                 userDataManager.deleteRouteHistory(id)
                 val updatedHistory = _uiState.value.routeHistory.filter { it.id != id }
 
-                // 更新 Agent 数据文件9（指令9：删除M+购物中心的历史记录时 deleted 为 true）
+                // 更新 Agent 数据文件9（指令9：删除1月2号的历史导航记录，目的地为武汉市少儿图书馆时 deleted 为 true）
                 if (routeToDelete != null) {
-                    val isFile9Match = routeToDelete.endName.contains("M+")
+                    val isFile9Match = routeToDelete.endName.contains("武汉市少儿图书馆")
                     agentDataManager.updateFile9(
                         deleted = isFile9Match,
                         destinationName = routeToDelete.endName

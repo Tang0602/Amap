@@ -1,24 +1,27 @@
 """
-指令 9 验证脚本：删除最早的一次历史导航记录
+指令 9 验证脚本：删除1月2号的历史导航记录
 
-答案：已删除最早的历史记录
+答案：武汉市少儿图书馆
 
 功能说明：
-- 验证应用是否正确执行了删除最早历史路线的任务
+- 验证应用是否正确执行了删除1月2号历史导航记录的任务
 - 通过 ADB 读取应用私有存储中的 JSON 文件
-- 检查 JSON 文件中是否包含必要的字段：deleted（���否已删除）、routeId（路线ID）、timestamp（时间戳）
+- 检查 JSON 文件中是否包含必要的字段：deleted（是否已删除）、destinationName（目的地名称）
 
 验证逻辑：
 1. 使用 ADB 读取 9_delete_recent_route.json 文件
 2. 解析 JSON 内容
-3. 验证 deleted 字段为 true（表示已删除）
-4. 验证 timestamp 字段存在（用于标识被删除记录的时间，应该是最早的时间戳）
+3. 验证 destinationName 字段包含 "武汉市少儿图书馆"
+4. 验证 deleted 字段为 true（表示已删除）
 5. 返回验证结果（PASS/FAIL）
 """
 
 import json
 import subprocess
 import sys
+
+# 预设的正确答案
+EXPECTED_DESTINATION = "武汉市少儿图书馆"
 
 
 def verify_delete_recent_route(device_id=None):
@@ -70,18 +73,13 @@ def verify_delete_recent_route(device_id=None):
             print("❌ FAIL: 缺少 'deleted' 字段")
             return False
 
-        if "routeId" not in json_data:
-            print("❌ FAIL: 缺少 'routeId' 字段")
-            return False
-
-        if "timestamp" not in json_data:
-            print("❌ FAIL: 缺少 'timestamp' 字段")
+        if "destinationName" not in json_data:
+            print("❌ FAIL: 缺少 'destinationName' 字段")
             return False
 
         # 获取字段值
         deleted = json_data["deleted"]
-        route_id = json_data["routeId"]
-        timestamp = json_data["timestamp"]
+        destination_name = json_data["destinationName"]
 
         # 验证是否已删除
         if not deleted:
@@ -89,25 +87,17 @@ def verify_delete_recent_route(device_id=None):
             print(f"   当前值: {deleted}")
             return False
 
-        # 验证时间戳是否有效（应该是最早的历史记录时间戳）
-        if timestamp <= 0:
-            print("❌ FAIL: 'timestamp' 字段无效（应大于 0）")
-            print(f"   当前值: {timestamp}")
+        # 验证目的地名称是否包含预设答案
+        if EXPECTED_DESTINATION not in str(destination_name):
+            print("❌ FAIL: 目的地名称中未包含预期答案")
+            print(f"   预期答案: {EXPECTED_DESTINATION}")
+            print(f"   实际结果: {destination_name}")
             return False
 
         # 验证通过，输出结果
-        print("✓ PASS: 删除最早历史路线任务验证成功")
+        print("✓ PASS: 删除1月2号历史导航记录任务验证成功")
         print(f"   已删除: {deleted}")
-        print(f"   路线ID: {route_id}")
-        print(f"   时间戳: {timestamp}")
-
-        # 尝试将时间戳转换为可读时间
-        try:
-            from datetime import datetime
-            readable_time = datetime.fromtimestamp(timestamp / 1000).strftime('%Y-%m-%d %H:%M:%S')
-            print(f"   删除时间: {readable_time}")
-        except:
-            pass
+        print(f"   目的地: {destination_name}")
 
         return True
 
@@ -132,7 +122,7 @@ def verify_delete_recent_route(device_id=None):
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("指令 9 验证：删除最早的一次历史导航记录")
+    print("指令 9 验证：删除1月2号的历史导航记录")
     print("=" * 60)
 
     # 执行验证
