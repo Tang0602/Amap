@@ -1,6 +1,10 @@
 """
 指令 21 验证脚本：告诉我最近的一家四星级酒店名字（根据简介看）
 把你的答案放在 <ans> 和 </ans> 之间。
+
+答案：瑞安城市酒店
+
+步骤：4以及以上
 """
 
 import logging
@@ -11,11 +15,11 @@ import re
 def validate(result=None, **kwargs):
     """
     校验逻辑：
-    1. 必须包含完整的酒店名称 "武汉天安假日酒店"。
+    1. 必须包含完整的酒店名称 "瑞安城市酒店"。
     2. 优先提取 <ans> 标签，若无标签则扫描全文。
     """
     # 这里定义必须出现的【完整】酒店名称
-    EXPECTED_FULL_NAME = "武汉天安假日酒店"
+    EXPECTED_FULL_NAME = "瑞安城市酒店"
 
     # 1. 检查结果是否存在
     if not result or "final_message" not in result:
@@ -58,14 +62,14 @@ if __name__ == "__main__":
     print("\n📋 人工操作步骤：")
     print("  1. 在地图中搜索酒店")
     print("  2. 查看酒店简介/详情")
-    print("  3. 确认距离最近的一家是：武汉天安假日酒店")
+    print("  3. 确认距离最近的一家是：瑞安城市酒店")
     print("\n🔍 正在进行模拟 Case 验证...")
 
     # --- 模拟测试用例 ---
     
     # 用例 1：正确且带标签
     test_case_1 = {
-        "final_message": "根据简介，最近的四星级酒店是 <ans>武汉天安假日酒店</ans>",
+        "final_message": "根据简介，最近的四星级酒店是 <ans>瑞安城市酒店店</ans>",
         "expected_eval_result": True,
     }
     
@@ -77,7 +81,7 @@ if __name__ == "__main__":
     
     # 用例 3：名称不完整（缺少城市前缀“武汉”）
     test_case_3 = {
-        "final_message": "最近的四星级酒店名字叫 <ans>天安假日酒店</ans>",
+        "final_message": "最近的四星级酒店名字叫 <ans>瑞安城市酒店</ans>",
         "expected_eval_result": False # 缺少“武汉”，判定为不完整/错误
     }
 

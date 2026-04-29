@@ -15,6 +15,8 @@
 4. 验证 waypoints 数组包含 "芦苇滩" 和 "武汉市人民政府"
 5. 验证 added 字段为 true（表示已添加途经点）
 6. 返回验证结果（PASS/FAIL）
+
+步骤：13
 """
 
 import json

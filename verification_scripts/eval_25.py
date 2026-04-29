@@ -15,6 +15,8 @@
 4. 验证 mode 字段包含 "骑行"
 5. 验证 started 字段为 true（表示已开始导航）
 6. 返回验证结果（PASS/FAIL）
+
+步骤：8
 """
 
 import json

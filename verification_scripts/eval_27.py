@@ -15,6 +15,8 @@
 4. 验证 waypoint 字段包含 "亚朵酒店"
 5. 验证 added 字段为 true（表示已添加途经点）
 6. 返回验证结果（PASS/FAIL）
+
+步骤：10
 """
 
 import json

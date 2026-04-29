@@ -14,6 +14,8 @@
 3. 验证 mode 字段包含 "夜间" 或 "dark"
 4. 验证 opened 字段为 true（表示已打开）
 5. 返回验证结果（PASS/FAIL）
+
+步骤：2
 """
 
 import json

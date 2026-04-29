@@ -14,6 +14,8 @@
 3. 验证 name 字段包含 "肖记公安牛肉鱼杂馆"
 4. 验证 favorited 字段为 true（表示已收藏）
 5. 返回验证结果（PASS/FAIL）
+
+步骤：5
 """
 
 import json

@@ -15,6 +15,8 @@
 4. 验证 phone 字段不为空
 5. 验证 called 字段为 true（表示已拨打电话）
 6. 返回验证结果（PASS/FAIL）
+
+步骤：6
 """
 
 import json

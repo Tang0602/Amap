@@ -14,6 +14,8 @@
 3. 验证 userName 字段包含 "123456"
 4. 验证 modified 字段为 true（表示已完成修改）
 5. 返回验证结果（PASS/FAIL）
+
+步骤：3
 """
 
 import json

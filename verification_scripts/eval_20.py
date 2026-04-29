@@ -19,6 +19,8 @@
 3. 验证 attractions 字段包含四个目标景点
 4. 验证 favorited 字段为 true（表示已收藏）
 5. 返回验证结果（PASS/FAIL）
+
+步骤：10
 """
 
 import json

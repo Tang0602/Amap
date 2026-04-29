@@ -14,6 +14,8 @@
 3. 验证 destinationName 字段包含 "武汉市少儿图书馆"
 4. 验证 deleted 字段为 true（表示已删除）
 5. 返回验证结果（PASS/FAIL）
+
+步骤：2
 """
 
 import json

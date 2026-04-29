@@ -15,6 +15,8 @@
 4. 验证 destination 字段包含 "步行" 关键词
 5. 验证 started 字段为 true（表示已开始导航）
 6. 返回验证结果（PASS/FAIL）
+
+步骤：最少5
 """
 
 import json
